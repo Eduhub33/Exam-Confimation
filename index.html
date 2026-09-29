@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SMPCIL Executive – Pre-Exam Confirmation Portal</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f5f6f8;--card:#fff;--tx:#1b1f27;--mu:#5d6675;--bd:#d9dde4;--ac:#1f5fd6;--ok:#12805c;--pe:#b45309}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--card:#1e222a;--tx:#e8ebf0;--mu:#9aa3b2;--bd:#343a46;--ac:#6aa0ff;--ok:#4cc79a;--pe:#f0a04b}}
+:root[data-theme="dark"]{--bg:#14171c;--card:#1e222a;--tx:#e8ebf0;--mu:#9aa3b2;--bd:#343a46;--ac:#6aa0ff;--ok:#4cc79a;--pe:#f0a04b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:1.35rem;margin:8px 0 4px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.meta span{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 10px;font-size:.85rem}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:8px 0;z-index:2}
+.track{height:8px;background:var(--bd);border-radius:6px;overflow:hidden}
+.fill{height:100%;width:0;background:var(--ok);transition:width .25s}
+.cap{font-size:.8rem;color:var(--mu);margin-top:4px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin:10px 0}
+.card h2{font-size:1rem;margin:0 0 8px}.n{color:var(--mu);font-weight:400;margin-right:6px}
+label{display:block;font-size:.78rem;color:var(--mu);margin:8px 0 3px}
+input,select,textarea{width:100%;box-sizing:border-box;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px}
+textarea{min-height:56px;resize:vertical}
+.st{display:inline-block;font-size:.72rem;padding:1px 8px;border-radius:99px;border:1px solid currentColor;margin-left:6px;vertical-align:middle}
+.Confirmed{color:var(--ok)}.Pending{color:var(--pe)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+button{font:inherit;padding:10px 14px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;cursor:pointer}
+button.s{background:transparent;color:var(--ac)}
+#msg{color:var(--ok);font-size:.85rem;min-height:1.2em}
+[hidden]{display:none!important}</style></head><body><main>
+<h1>Pre-Exam Confirmation Portal</h1>
+<div class="meta"><span><b>Project:</b> SMPCIL_EXECUTIVE</span><span><b>Exam Date:</b> 10th Oct 2026</span><span><b>Client:</b> EDCIL</span></div>
+<div class="bar"><div class="track"><div class="fill" id="f"></div></div><div class="cap" id="c"></div><div class="cap" id="sy">Saved on this device only</div></div>
+<div id="list"></div>
+<div class="acts">
+<button id="copy">Copy summary</button>
+<button class="s" id="csv">Download CSV</button>
+<button class="s" id="mail">Send by email</button>
+<button class="s" id="rst">Reset</button></div>
+<div id="mp" class="card" hidden><h2>Send by email</h2>
+<label for="mto">To (email address)</label><input id="mto" type="email" placeholder="name@example.com">
+<label for="mt">Message (editable)</label><textarea id="mt" style="min-height:140px"></textarea>
+<div class="acts"><button id="mdef">Open email app</button><button class="s" id="mgm">Open Gmail</button><button class="s" id="mcp">Copy text</button></div></div>
+<div id="msg"></div>
+<p class="cap">Entries auto-save in this browser. Use “Send by email” or “Download CSV” to submit your final responses.</p>
+</main>
+<script>
+const ITEMS=[
+["Exam Date","10th Oct 2026","Confirmed",""],
+["City Live Date","25th Sep 2026","Confirmed",""],
+["Admit Card Live Date","07th Oct 2026","Confirmed",""],
+["Roll No. Generation Logic","12 Digit Roll No.","Confirmed","First 2 Digit – State Code; Next 2 Digit – City Code; Next 2 Digit – Center Code; Next 2 Digit – Post Code; Next 4 Digit – Sequence (0001 onwards)"],
+["Slot Timing","Slot-1 (10:00 AM to 12:00 PM)","Confirmed",""],
+["Email Content for City Intimation","Received","Confirmed",""],
+["Email Content for Admit Card","","Pending",""],
+["Email Content for Objection Management","","Pending",""],
+["Ancillary Services","IRIS & Biometric Registration/Verification; Frisking with HHMD; Live CCTV & Recording","Confirmed",""],
+["CCR Location","EdCIL Noida","Confirmed",""],
+["Admit Card Format","","Pending",""],
+["Extra Time to be provided by default to PwBD Candidates","","Pending","Confirm whether extra time will be provided by default or only against valid supporting documents"],
+["Scribe Registration applicable for the exam?","Yes","Confirmed",""],
+["Admit Card Live for candidates with multiple applications","Only one Admit Card to be generated against the candidate's latest application","Confirmed",""],
+["Admit Card Collection from the Candidates","Yes","Confirmed",""],
+["Annexure & Observer Details","","Pending",""],
+["Objection Management","","Pending",""],
+["Any Specific Requirements for the Project","","Pending",""]];
+const KEY="smpcil_exec_confirm_v1";let S={};
+try{S=JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){}
+const $=id=>document.getElementById(id);
+const get=i=>S[i]||{d:ITEMS[i][1],s:ITEMS[i][2],r:ITEMS[i][3]};
+let ref=null,tm=null,last="";
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}
+if(ref){clearTimeout(tm);tm=setTimeout(async()=>{last=JSON.stringify(S);try{await ref.set({items:last,at:Date.now()});sync("Saved & shared")}catch(e){sync("Not shared – you may have view-only access; entries saved on this device")}},600)}}
+function sync(t){const e=$("sy");if(e)e.textContent=t}
+function prog(){const done=ITEMS.filter((_,i)=>get(i).s==="Confirmed"&&get(i).d.trim()).length;
+$("f").style.width=done/ITEMS.length*100+"%";$("c").textContent=done+" of "+ITEMS.length+" points confirmed";}
+function render(){const L=$("list");L.innerHTML="";
+ITEMS.forEach((it,i)=>{const v=get(i),c=document.createElement("div");c.className="card";
+const h=document.createElement("h2");h.innerHTML='<span class="n">'+(i+1)+'.</span>';
+h.append(it[0]);const b=document.createElement("span");b.className="st "+v.s;b.textContent=v.s;h.append(b);c.append(h);
+const mk=(lab,el)=>{const l=document.createElement("label");l.textContent=lab;c.append(l,el)};
+const d=document.createElement("textarea");d.value=v.d;d.placeholder="Enter details";
+const s=document.createElement("select");["Confirmed","Pending"].forEach(o=>{const x=document.createElement("option");x.textContent=o;x.selected=o===v.s;s.append(x)});
+const r=document.createElement("textarea");r.value=v.r;r.placeholder="Remarks (optional)";
+const upd=()=>{S[i]={d:d.value,s:s.value,r:r.value};b.className="st "+s.value;b.textContent=s.value;save();prog()};
+[d,s,r].forEach(e=>e.addEventListener("input",upd));
+mk("Status / Details",d);mk("Client Confirmation",s);mk("Remarks",r);L.append(c)});prog()}
+function rows(){return ITEMS.map((it,i)=>{const v=get(i);return [i+1,it[0],v.d,v.s,v.r]})}
+function text(){return "SMPCIL_EXECUTIVE | Exam 10th Oct 2026 | Client: EDCIL\n\n"+rows().map(r=>r[0]+". "+r[1]+"\n   Details: "+(r[2]||"-")+"\n   Confirmation: "+r[3]+(r[4]?"\n   Remarks: "+r[4]:"")).join("\n")}
+const say=t=>{$("msg").textContent=t;setTimeout(()=>$("msg").textContent="",4000)};
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText(text());say("Summary copied.")}catch(e){const t=document.createElement("textarea");t.value=text();document.body.append(t);t.select();try{document.execCommand("copy");say("Summary copied.")}catch(x){say("Copy not available.")}t.remove()}};
+$("csv").onclick=async()=>{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+const data=[["Sr. No.","Confirmation Point","Status / Details","Client Confirmation","Remarks"],...rows()].map(r=>r.map(q).join(",")).join("\n");
+try{const dl=(typeof claude!=="undefined")?await claude.use("downloads"):null;
+if(dl){await dl.save({filename:"Exam_Confirmation_Matrix_Response.csv",data});say("CSV saved.");return}
+const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+data],{type:"text/csv"}));a.download="Exam_Confirmation_Matrix_Response.csv";document.body.append(a);a.click();a.remove();say("CSV downloaded.")}catch(e){say("Download cancelled or unavailable.")}};
+let rt=null;
+$("rst").onclick=()=>{const b=$("rst");if(!rt){b.textContent="Click again to confirm";rt=setTimeout(()=>{b.textContent="Reset";rt=null},4000);return}
+clearTimeout(rt);rt=null;b.textContent="Reset";S={};last="";try{localStorage.removeItem(KEY)}catch(e){}
+if(ref){ref.set({items:"{}",at:Date.now()}).catch(()=>{})}render();say("All entries cleared.")};
+async function cp(t){try{await navigator.clipboard.writeText(t);return true}catch(e){const x=document.createElement("textarea");x.value=t;document.body.append(x);x.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}x.remove();return ok}}
+$("mail").onclick=()=>{const p=$("mp");p.hidden=!p.hidden;if(!p.hidden)$("mt").value=text()};
+function mailData(){return {to:$("mto").value.trim(),su:"SMPCIL_EXECUTIVE – Pre-Exam Confirmation",body:$("mt").value}}
+$("mdef").onclick=async()=>{const m=mailData();await cp(m.body);
+const a=document.createElement("a");a.href="mailto:"+encodeURIComponent(m.to).replace(/%40/g,"@").replace(/%2C/g,",")+"?subject="+encodeURIComponent(m.su)+"&body="+encodeURIComponent(m.body);a.target="_blank";a.rel="noopener";document.body.append(a);a.click();a.remove();say("Opening your email app… summary also copied – paste it if the body is empty.")};
+$("mgm").onclick=async()=>{const m=mailData();const ok=await cp(m.body);const long=m.body.length>1500;
+const u="https://mail.google.com/mail/?view=cm&fs=1&to="+encodeURIComponent(m.to)+"&su="+encodeURIComponent(m.su)+"&body="+encodeURIComponent(long?"(Paste the copied summary here)":m.body);
+const w=window.open(u,"_blank","noopener");say(w?(long?"Gmail opened – paste the copied summary into the body.":"Gmail opened."):"Popup blocked – summary copied; paste it into your email manually.")};
+$("mcp").onclick=async()=>{say(await cp($("mt").value)?"Email text copied.":"Copy not available.")};
+render();
+(async()=>{try{if(typeof claude==="undefined")return;const db=await claude.use("db");if(!db)return;ref=db.doc("confirmation/matrix");
+sync("Shared – live sync on");
+ref.onSnapshot(sn=>{if(!sn.exists)return;const d=sn.data();if(!d||!d.items||d.items===last)return;
+if(document.activeElement&&document.activeElement.closest("#list"))return;
+try{S=JSON.parse(d.items);last=d.items;render();sync("Shared – updated just now")}catch(e){}},()=>sync("Live sync unavailable"))}catch(e){}})();
+</script></body></html>
