@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>SMPCIL Executive – Pre-Exam Confirmation Portal</title>
+<title>DVC III – Pre-Exam Confirmation Portal</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f5f6f8;--card:#fff;--tx:#1b1f27;--mu:#5d6675;--bd:#d9dde4;--ac:#1f5fd6;--ok:#12805c;--pe:#b45309}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--card:#1e222a;--tx:#e8ebf0;--mu:#9aa3b2;--bd:#343a46;--ac:#6aa0ff;--ok:#4cc79a;--pe:#f0a04b}}
@@ -29,7 +29,7 @@ button.s{background:transparent;color:var(--ac)}
 #msg{color:var(--ok);font-size:.85rem;min-height:1.2em}
 [hidden]{display:none!important}</style></head><body><main>
 <h1>Pre-Exam Confirmation Portal</h1>
-<div class="meta"><span><b>Project:</b> SMPCIL_EXECUTIVE</span><span><b>Exam Date:</b> 10th Oct 2026</span><span><b>Client:</b> EDCIL</span></div>
+<div class="meta"><span><b>Project:</b> DVC III</span><span><b>Exam Date:</b> 11th Oct 2026</span><span><b>Client:</b> EDCIL</span></div>
 <div class="bar"><div class="track"><div class="fill" id="f"></div></div><div class="cap" id="c"></div><div class="cap" id="sy">Saved on this device only</div></div>
 <div id="list"></div>
 <div class="acts">
@@ -46,7 +46,7 @@ button.s{background:transparent;color:var(--ac)}
 </main>
 <script>
 const ITEMS=[
-["Exam Date","10th Oct 2026","Confirmed",""],
+["Exam Date","11th Oct 2026","Confirmed",""],
 ["City Live Date","25th Sep 2026","Confirmed",""],
 ["Admit Card Live Date","07th Oct 2026","Confirmed",""],
 ["Roll No. Generation Logic","12 Digit Roll No.","Confirmed","First 2 Digit – State Code; Next 2 Digit – City Code; Next 2 Digit – Center Code; Next 2 Digit – Post Code; Next 4 Digit – Sequence (0001 onwards)"],
@@ -86,7 +86,7 @@ const upd=()=>{S[i]={d:d.value,s:s.value,r:r.value};b.className="st "+s.value;b.
 [d,s,r].forEach(e=>e.addEventListener("input",upd));
 mk("Status / Details",d);mk("Client Confirmation",s);mk("Remarks",r);L.append(c)});prog()}
 function rows(){return ITEMS.map((it,i)=>{const v=get(i);return [i+1,it[0],v.d,v.s,v.r]})}
-function text(){return "SMPCIL_EXECUTIVE | Exam 10th Oct 2026 | Client: EDCIL\n\n"+rows().map(r=>r[0]+". "+r[1]+"\n   Details: "+(r[2]||"-")+"\n   Confirmation: "+r[3]+(r[4]?"\n   Remarks: "+r[4]:"")).join("\n")}
+function text(){return "DVC III | Exam 11th Oct 2026 | Client: EDCIL\n\n"+rows().map(r=>r[0]+". "+r[1]+"\n   Details: "+(r[2]||"-")+"\n   Confirmation: "+r[3]+(r[4]?"\n   Remarks: "+r[4]:"")).join("\n")}
 const say=t=>{$("msg").textContent=t;setTimeout(()=>$("msg").textContent="",4000)};
 $("copy").onclick=async()=>{try{await navigator.clipboard.writeText(text());say("Summary copied.")}catch(e){const t=document.createElement("textarea");t.value=text();document.body.append(t);t.select();try{document.execCommand("copy");say("Summary copied.")}catch(x){say("Copy not available.")}t.remove()}};
 $("csv").onclick=async()=>{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
