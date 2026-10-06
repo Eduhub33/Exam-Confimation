@@ -282,7 +282,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <tbody id="tableBody"></tbody>
 </table>
 </div>
-<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">🔐 Normal User: Add New Project → Fill Data → Save → Project Locked &nbsp; | &nbsp; 📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
+<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.csv</b> in offline mode. For legacy <b>.xls</b>, save it as <b>.xlsx</b> first.</div><div class="excel-note">🔐 Normal User: Add New Project → Fill Data → Save → Project Locked &nbsp; | &nbsp; 📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
 </div>
 <div id="flash" class="flash"></div>
 
@@ -294,6 +294,29 @@ const fields=["project","examDate","applications","scheduled","present","states"
 const headers=["Project","Exam Date","Applications","Scheduled","Present","No. of State","No. of City","No. of Center","IRD/Syllabus Received","City Live Date","Admit Card Live Date","QP","Status","Content Request","Content Delivery","Content Status","No. of Objection Live","No. of Objection Close","Result Submit Date","Remark"];
 const numericFields=["applications","scheduled","present","states","cities","centers","qp"];
 const dateFields=["examDate","cityLive","admitCard","request","delivery","objectionLive","objectionClose","result"];
+
+/* ======================================================
+   OFFLINE XLSX ENGINE - NO CDN / NO INTERNET REQUIRED
+====================================================== */
+var XLSX_OFFLINE={
+ textEncoder:new TextEncoder(),textDecoder:new TextDecoder('utf-8'),crcTable:null,
+ crc32(bytes){if(!this.crcTable){this.crcTable=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);this.crcTable[n]=c>>>0;}}let c=0xFFFFFFFF;for(const b of bytes)c=this.crcTable[(c^b)&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;},
+ u16(a,o){return a[o]|(a[o+1]<<8);},
+ u32(a,o){return(a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0;},
+ concat(parts){let total=parts.reduce((n,p)=>n+p.length,0),out=new Uint8Array(total),pos=0;for(const p of parts){out.set(p,pos);pos+=p.length;}return out;},
+ async inflateRaw(bytes){if(typeof DecompressionStream==='undefined')throw new Error('Your browser does not support offline XLSX decompression. Please use the latest Chrome or Edge.');const ds=new DecompressionStream('deflate-raw');const stream=new Blob([bytes]).stream().pipeThrough(ds);return new Uint8Array(await new Response(stream).arrayBuffer());},
+ async readZip(buffer){const a=new Uint8Array(buffer);let eocd=-1;for(let i=a.length-22;i>=Math.max(0,a.length-65557);i--){if(this.u32(a,i)===0x06054b50){eocd=i;break;}}if(eocd<0)throw new Error('The selected file is not a valid XLSX file.');const count=this.u16(a,eocd+10),cdOffset=this.u32(a,eocd+16),files=new Map();let p=cdOffset;for(let i=0;i<count;i++){if(this.u32(a,p)!==0x02014b50)throw new Error('Invalid XLSX central directory.');const method=this.u16(a,p+10),csize=this.u32(a,p+20),usize=this.u32(a,p+24),nameLen=this.u16(a,p+28),extraLen=this.u16(a,p+30),commentLen=this.u16(a,p+32),localOffset=this.u32(a,p+42),name=this.textDecoder.decode(a.slice(p+46,p+46+nameLen));p+=46+nameLen+extraLen+commentLen;if(this.u32(a,localOffset)!==0x04034b50)throw new Error('Invalid XLSX local header.');const ln=this.u16(a,localOffset+26),le=this.u16(a,localOffset+28),dataStart=localOffset+30+ln+le,compressed=a.slice(dataStart,dataStart+csize);let data;if(method===0)data=compressed;else if(method===8)data=await this.inflateRaw(compressed);else throw new Error('Unsupported XLSX compression method: '+method);if(usize&&data.length!==usize){}files.set(name,data);}return files;},
+ xml(files,name){const bytes=files.get(name);if(!bytes)throw new Error('Required XLSX file missing: '+name);return new DOMParser().parseFromString(this.textDecoder.decode(bytes),'application/xml');},
+ textOf(el){return Array.from(el.getElementsByTagNameNS('*','t')).map(x=>x.textContent||'').join('');},
+ colNumber(ref){const m=String(ref||'').match(/([A-Z]+)\d+/i);if(!m)return 0;let n=0;for(const ch of m[1].toUpperCase())n=n*26+(ch.charCodeAt(0)-64);return n-1;},
+ async parseXLSX(buffer){const files=await this.readZip(buffer),workbook=this.xml(files,'xl/workbook.xml'),rels=this.xml(files,'xl/_rels/workbook.xml.rels'),sheetEl=Array.from(workbook.getElementsByTagNameNS('*','sheet'))[0];if(!sheetEl)throw new Error('No worksheet found in the Excel file.');const rid=sheetEl.getAttribute('r:id')||sheetEl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');let target='';for(const r of Array.from(rels.getElementsByTagNameNS('*','Relationship'))){if(r.getAttribute('Id')===rid){target=r.getAttribute('Target')||'';break;}}if(!target)throw new Error('Could not locate the first worksheet.');target=target.replace(/^\//,'');if(!target.startsWith('xl/'))target='xl/'+target;let shared=[];if(files.has('xl/sharedStrings.xml')){const sst=this.xml(files,'xl/sharedStrings.xml');for(const si of Array.from(sst.getElementsByTagNameNS('*','si')))shared.push(this.textOf(si));}const sheet=this.xml(files,target),rows=Array.from(sheet.getElementsByTagNameNS('*','row')),output=[];for(const rowEl of rows){const cells=Array.from(rowEl.children||[]).filter(x=>(x.localName||x.nodeName.split(':').pop())==='c'),row=[];for(const c of cells){const ref=c.getAttribute('r')||'',col=this.colNumber(ref),type=c.getAttribute('t')||'';let value='';if(type==='inlineStr')value=this.textOf(c);else{const v=c.getElementsByTagNameNS('*','v')[0];value=v?(v.textContent||''):'';if(type==='s')value=shared[Number(value)]??'';else if(type==='b')value=value==='1';}row[col]=value;}output.push(row);}return output;},
+ esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');},
+ columnName(n){let s='';n++;while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26);}return s;},
+ cellXml(value,col,row){const ref=this.columnName(col)+(row+1);if(value===null||value===undefined||value==='')return `<c r="${ref}"/>`;if(typeof value==='number'&&Number.isFinite(value))return `<c r="${ref}"><v>${value}</v></c>`;return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${this.esc(value)}</t></is></c>`;},
+ makeSheet(rows){let xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';rows.forEach((row,r)=>{xml+=`<row r="${r+1}">`;for(let c=0;c<row.length;c++)xml+=this.cellXml(row[c],c,r);xml+='</row>';});return xml+'</sheetData></worksheet>';},
+ makeZip(entries){const locals=[],centrals=[];let offset=0;for(const entry of entries){const name=this.textEncoder.encode(entry.name),data=typeof entry.data==='string'?this.textEncoder.encode(entry.data):entry.data,crc=this.crc32(data),local=new Uint8Array(30+name.length+data.length),dv=new DataView(local.buffer);dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0,true);dv.setUint16(8,0,true);dv.setUint16(10,0,true);dv.setUint16(12,0,true);dv.setUint32(14,crc,true);dv.setUint32(18,data.length,true);dv.setUint32(22,data.length,true);dv.setUint16(26,name.length,true);dv.setUint16(28,0,true);local.set(name,30);local.set(data,30+name.length);locals.push(local);const central=new Uint8Array(46+name.length),cd=new DataView(central.buffer);cd.setUint32(0,0x02014b50,true);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(8,0,true);cd.setUint16(10,0,true);cd.setUint16(12,0,true);cd.setUint16(14,0,true);cd.setUint32(16,crc,true);cd.setUint32(20,data.length,true);cd.setUint32(24,data.length,true);cd.setUint16(28,name.length,true);cd.setUint16(30,0,true);cd.setUint16(32,0,true);cd.setUint16(34,0,true);cd.setUint16(36,0,true);cd.setUint32(38,0,true);cd.setUint32(42,offset,true);central.set(name,46);centrals.push(central);offset+=local.length;}const centralData=this.concat(centrals),localData=this.concat(locals),end=new Uint8Array(22),ev=new DataView(end.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(4,0,true);ev.setUint16(6,0,true);ev.setUint16(8,entries.length,true);ev.setUint16(10,entries.length,true);ev.setUint32(12,centralData.length,true);ev.setUint32(16,localData.length,true);ev.setUint16(20,0,true);return this.concat([localData,centralData,end]);},
+ createXLSX(rows){const contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Exam Tracker" sheetId="1" r:id="rId1"/></sheets></workbook>',workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';return this.makeZip([{name:'[Content_Types].xml',data:contentTypes},{name:'_rels/.rels',data:rootRels},{name:'xl/workbook.xml',data:workbook},{name:'xl/_rels/workbook.xml.rels',data:workbookRels},{name:'xl/worksheets/sheet1.xml',data:this.makeSheet(rows)}]);}
+};
 
 let exams=[
 {project:"PSPCL (Punjabi Lang)",examDate:"2026-07-20",applications:2431,scheduled:2431,present:"",states:"",cities:"",centers:"",ird:"",cityLive:"",admitCard:"",qp:1,status:"Completed",request:"",delivery:"",content:"Ready",objectionLive:"",objectionClose:"",result:"",remark:"Exam Completed"},
@@ -314,8 +337,15 @@ function loadData(){
 try{const saved=localStorage.getItem(STORAGE_KEY);if(saved){const data=JSON.parse(saved);if(Array.isArray(data))exams=data;}}catch(e){console.error(e)}
 }
 function saveData(){
-localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
-renderTable();flash("Data saved successfully");
+ const u=currentUser();
+ if(u && u.role!=="admin"){
+   exams.forEach(exam=>{
+     if(exam._createdBy===u.username) exam._savedByUser=true;
+   });
+ }
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+ renderTable();
+ flash(u && u.role!=="admin" ? "Data saved. Your project is now locked." : "Data saved successfully");
 }
 
 function normalUserCanEditProject(index){
@@ -388,6 +418,7 @@ if(field==="project")input.className="project";
 if(field!=="examDate"){
     input.addEventListener("change",function(){updateField(index,field,this.value)});
 }
+lockEditorElement(input,index);
 td.appendChild(input);tr.appendChild(td);
 });
 
@@ -720,7 +751,13 @@ function applyAutoDatesToRow(index){
 }
 
 function updateField(index,field,value){
-if(numericFields.includes(field)){
+ const u=currentUser();
+ if(u && u.role!=="admin" && !normalUserCanEditProject(index)){
+   alert("This project is locked. Normal users can only edit a new project before the first Save.");
+   renderTable();
+   return;
+ }
+ if(numericFields.includes(field)){
     exams[index][field]=value===""?"":Number(value);
 }else{
     exams[index][field]=value;
@@ -733,8 +770,16 @@ localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
 updateSummary();
 }
 function addProject(){
-exams.push({project:"New Project",examDate:"",applications:0,scheduled:0,present:0,states:0,cities:0,centers:0,ird:"",cityLive:"",admitCard:"",qp:0,status:"Scheduled",request:"",delivery:"",content:"Pending",objectionLive:"",objectionClose:"",result:"",remark:""});
-saveData();
+ const u=currentUser();
+ const project={project:"New Project",examDate:"",applications:0,scheduled:0,present:0,states:0,cities:0,centers:0,ird:"",cityLive:"",admitCard:"",qp:0,status:"Scheduled",request:"",delivery:"",content:"Pending",objectionLive:"",objectionClose:"",result:"",remark:""};
+ if(u && u.role!=="admin"){
+   project._createdBy=u.username;
+   project._savedByUser=false;
+ }
+ exams.push(project);
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+ renderTable();
+ flash("New project added. Fill the data and click Save to lock it.");
 }
 function deleteProject(index){ if(typeof isAdmin==="function" && !isAdmin()){ alert("Delete access is restricted to Admin users only."); return; }
 if(confirm("Are you sure you want to delete this project?")){exams.splice(index,1);saveData();}
@@ -749,29 +794,6 @@ document.getElementById("totalReady").textContent=exams.filter(e=>e.content==="R
 document.getElementById("totalWIP").textContent=exams.filter(e=>e.content==="WIP").length;
 document.getElementById("totalPending").textContent=exams.filter(e=>e.content==="Pending").length;
 }
-
-/* ======================================================
-   OFFLINE XLSX ENGINE - NO CDN / NO INTERNET REQUIRED
-====================================================== */
-const XLSX_OFFLINE={
- textEncoder:new TextEncoder(),textDecoder:new TextDecoder('utf-8'),crcTable:null,
- crc32(bytes){if(!this.crcTable){this.crcTable=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);this.crcTable[n]=c>>>0;}}let c=0xFFFFFFFF;for(const b of bytes)c=this.crcTable[(c^b)&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;},
- u16(a,o){return a[o]|(a[o+1]<<8);},
- u32(a,o){return(a[o]|(a[o+1]<<8)|(a[o+2]<<16)|(a[o+3]<<24))>>>0;},
- concat(parts){let total=parts.reduce((n,p)=>n+p.length,0),out=new Uint8Array(total),pos=0;for(const p of parts){out.set(p,pos);pos+=p.length;}return out;},
- async inflateRaw(bytes){if(typeof DecompressionStream==='undefined')throw new Error('Your browser does not support offline XLSX decompression. Please use the latest Chrome or Edge.');const ds=new DecompressionStream('deflate-raw');const stream=new Blob([bytes]).stream().pipeThrough(ds);return new Uint8Array(await new Response(stream).arrayBuffer());},
- async readZip(buffer){const a=new Uint8Array(buffer);let eocd=-1;for(let i=a.length-22;i>=Math.max(0,a.length-65557);i--){if(this.u32(a,i)===0x06054b50){eocd=i;break;}}if(eocd<0)throw new Error('The selected file is not a valid XLSX file.');const count=this.u16(a,eocd+10),cdOffset=this.u32(a,eocd+16),files=new Map();let p=cdOffset;for(let i=0;i<count;i++){if(this.u32(a,p)!==0x02014b50)throw new Error('Invalid XLSX central directory.');const method=this.u16(a,p+10),csize=this.u32(a,p+20),usize=this.u32(a,p+24),nameLen=this.u16(a,p+28),extraLen=this.u16(a,p+30),commentLen=this.u16(a,p+32),localOffset=this.u32(a,p+42),name=this.textDecoder.decode(a.slice(p+46,p+46+nameLen));p+=46+nameLen+extraLen+commentLen;if(this.u32(a,localOffset)!==0x04034b50)throw new Error('Invalid XLSX local header.');const ln=this.u16(a,localOffset+26),le=this.u16(a,localOffset+28),dataStart=localOffset+30+ln+le,compressed=a.slice(dataStart,dataStart+csize);let data;if(method===0)data=compressed;else if(method===8)data=await this.inflateRaw(compressed);else throw new Error('Unsupported XLSX compression method: '+method);if(usize&&data.length!==usize){}files.set(name,data);}return files;},
- xml(files,name){const bytes=files.get(name);if(!bytes)throw new Error('Required XLSX file missing: '+name);return new DOMParser().parseFromString(this.textDecoder.decode(bytes),'application/xml');},
- textOf(el){return Array.from(el.getElementsByTagNameNS('*','t')).map(x=>x.textContent||'').join('');},
- colNumber(ref){const m=String(ref||'').match(/([A-Z]+)\d+/i);if(!m)return 0;let n=0;for(const ch of m[1].toUpperCase())n=n*26+(ch.charCodeAt(0)-64);return n-1;},
- async parseXLSX(buffer){const files=await this.readZip(buffer),workbook=this.xml(files,'xl/workbook.xml'),rels=this.xml(files,'xl/_rels/workbook.xml.rels'),sheetEl=Array.from(workbook.getElementsByTagNameNS('*','sheet'))[0];if(!sheetEl)throw new Error('No worksheet found in the Excel file.');const rid=sheetEl.getAttribute('r:id')||sheetEl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');let target='';for(const r of Array.from(rels.getElementsByTagNameNS('*','Relationship'))){if(r.getAttribute('Id')===rid){target=r.getAttribute('Target')||'';break;}}if(!target)throw new Error('Could not locate the first worksheet.');target=target.replace(/^\//,'');if(!target.startsWith('xl/'))target='xl/'+target;let shared=[];if(files.has('xl/sharedStrings.xml')){const sst=this.xml(files,'xl/sharedStrings.xml');for(const si of Array.from(sst.getElementsByTagNameNS('*','si')))shared.push(this.textOf(si));}const sheet=this.xml(files,target),rows=Array.from(sheet.getElementsByTagNameNS('*','row')),output=[];for(const rowEl of rows){const cells=Array.from(rowEl.children||[]).filter(x=>(x.localName||x.nodeName.split(':').pop())==='c'),row=[];for(const c of cells){const ref=c.getAttribute('r')||'',col=this.colNumber(ref),type=c.getAttribute('t')||'';let value='';if(type==='inlineStr')value=this.textOf(c);else{const v=c.getElementsByTagNameNS('*','v')[0];value=v?(v.textContent||''):'';if(type==='s')value=shared[Number(value)]??'';else if(type==='b')value=value==='1';}row[col]=value;}output.push(row);}return output;},
- esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');},
- columnName(n){let s='';n++;while(n>0){const r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=Math.floor((n-1)/26);}return s;},
- cellXml(value,col,row){const ref=this.columnName(col)+(row+1);if(value===null||value===undefined||value==='')return `<c r="${ref}"/>`;if(typeof value==='number'&&Number.isFinite(value))return `<c r="${ref}"><v>${value}</v></c>`;return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${this.esc(value)}</t></is></c>`;},
- makeSheet(rows){let xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>';rows.forEach((row,r)=>{xml+=`<row r="${r+1}">`;for(let c=0;c<row.length;c++)xml+=this.cellXml(row[c],c,r);xml+='</row>';});return xml+'</sheetData></worksheet>';},
- makeZip(entries){const locals=[],centrals=[];let offset=0;for(const entry of entries){const name=this.textEncoder.encode(entry.name),data=typeof entry.data==='string'?this.textEncoder.encode(entry.data):entry.data,crc=this.crc32(data),local=new Uint8Array(30+name.length+data.length),dv=new DataView(local.buffer);dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0,true);dv.setUint16(8,0,true);dv.setUint16(10,0,true);dv.setUint16(12,0,true);dv.setUint32(14,crc,true);dv.setUint32(18,data.length,true);dv.setUint32(22,data.length,true);dv.setUint16(26,name.length,true);dv.setUint16(28,0,true);local.set(name,30);local.set(data,30+name.length);locals.push(local);const central=new Uint8Array(46+name.length),cd=new DataView(central.buffer);cd.setUint32(0,0x02014b50,true);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(8,0,true);cd.setUint16(10,0,true);cd.setUint16(12,0,true);cd.setUint16(14,0,true);cd.setUint32(16,crc,true);cd.setUint32(20,data.length,true);cd.setUint32(24,data.length,true);cd.setUint16(28,name.length,true);cd.setUint16(30,0,true);cd.setUint16(32,0,true);cd.setUint16(34,0,true);cd.setUint16(36,0,true);cd.setUint32(38,0,true);cd.setUint32(42,offset,true);central.set(name,46);centrals.push(central);offset+=local.length;}const centralData=this.concat(centrals),localData=this.concat(locals),end=new Uint8Array(22),ev=new DataView(end.buffer);ev.setUint32(0,0x06054b50,true);ev.setUint16(4,0,true);ev.setUint16(6,0,true);ev.setUint16(8,entries.length,true);ev.setUint16(10,entries.length,true);ev.setUint32(12,centralData.length,true);ev.setUint32(16,localData.length,true);ev.setUint16(20,0,true);return this.concat([localData,centralData,end]);},
- createXLSX(rows){const contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Exam Tracker" sheetId="1" r:id="rId1"/></sheets></workbook>',workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';return this.makeZip([{name:'[Content_Types].xml',data:contentTypes},{name:'_rels/.rels',data:rootRels},{name:'xl/workbook.xml',data:workbook},{name:'xl/_rels/workbook.xml.rels',data:workbookRels},{name:'xl/worksheets/sheet1.xml',data:this.makeSheet(rows)}]);}
-};
 
 function exportExcel(){if(!isAdmin()){alert("Only Admin can export Excel.");return;}try{const rows=[headers,...exams.map(exam=>fields.map(field=>exam[field]??''))],bytes=XLSX_OFFLINE.createXLSX(rows),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker.xlsx');flash('Excel exported successfully - offline mode');}catch(error){console.error(error);alert('Excel export failed.\n\n'+error.message);}}
 
@@ -1018,7 +1040,7 @@ function formatImportedDate(date){
 }
 
 
-function importExcel(){if(!isAdmin()){alert("Only Admin can import Excel.");return;}const input=document.createElement('input');input.type='file';input.accept='.xlsx,.xls,.csv';input.onchange=async function(){const file=input.files&&input.files[0];if(!file)return;try{let rows;const lower=file.name.toLowerCase();if(lower.endsWith('.csv'))rows=parseCSV(await file.text());else if(lower.endsWith('.xlsx'))rows=await XLSX_OFFLINE.parseXLSX(await file.arrayBuffer());else throw new Error('Legacy .xls files are not supported in the fully offline version. Please open the .xls file in Excel and save it as .xlsx, then import it.');if(!rows||rows.length<2)throw new Error('No data found in the selected file.');const imported=convertExcelRows(rows);if(!imported.length)throw new Error('No valid project records found. Please make sure the Excel file contains a Project column.');const replace=confirm('Found '+imported.length+' project(s).\n\nOK = REPLACE current data\nCancel = APPEND imported data');exams=replace?imported:exams.concat(imported);saveData();flash(imported.length+' project(s) imported successfully');}catch(error){console.error(error);alert('Excel import failed.\n\n'+error.message);}};input.click();}
+function importExcel(){if(!isAdmin()){alert("Only Admin can import Excel.");return;}const input=document.createElement('input');input.type='file';input.accept='.xlsx,.csv';input.onchange=async function(){const file=input.files&&input.files[0];if(!file)return;try{let rows;const lower=file.name.toLowerCase();if(lower.endsWith('.csv'))rows=parseCSV(await file.text());else if(lower.endsWith('.xlsx')){if(!XLSX_OFFLINE||typeof XLSX_OFFLINE.parseXLSX!=='function')throw new Error('Offline Excel engine is not initialized. Please refresh the page and try again.');rows=await XLSX_OFFLINE.parseXLSX(await file.arrayBuffer());}else throw new Error('Legacy .xls files are not supported in offline mode. Please open the .xls file in Excel and save it as .xlsx, then import it.');if(!rows||rows.length<2)throw new Error('No data found in the selected file.');const imported=convertExcelRows(rows);if(!imported.length)throw new Error('No valid project records found. Please make sure the Excel file contains a Project column.');const replace=confirm('Found '+imported.length+' project(s).\n\nOK = REPLACE current data\nCancel = APPEND imported data');exams=replace?imported:exams.concat(imported);saveData();flash(imported.length+' project(s) imported successfully');}catch(error){console.error(error);alert('Excel import failed.\n\n'+error.message);}};input.click();}
 
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(ch==='"'){if(quoted&&next==='"'){field+='"';i++;}else quoted=!quoted;}else if(ch===','&&!quoted){row.push(field);field='';}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&next==='\n')i++;row.push(field);field='';if(row.some(v=>String(v).trim()!==''))rows.push(row);row=[];}else field+=ch;}if(field!==''||row.length){row.push(field);if(row.some(v=>String(v).trim()!==''))rows.push(row);}return rows;}
 
@@ -1039,9 +1061,6 @@ reader.readAsText(file);
 }
 function downloadBlob(blob,name){
 const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
-}
-function resetData(){
-if(confirm("Reset dashboard to default data?")){localStorage.removeItem(STORAGE_KEY);location.reload();}
 }
 function flash(message){
 const el=document.getElementById("flash");el.textContent=message;el.style.display="block";
