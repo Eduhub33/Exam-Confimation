@@ -326,24 +326,86 @@ let exams=[
 {project:"EDCIL-SMPCIL CNP",examDate:"2026-08-18",applications:1500,scheduled:1500,present:"",states:"",cities:"",centers:"",ird:"",cityLive:"",admitCard:"",qp:2,status:"Scheduled",request:"2026-07-20",delivery:"2026-08-10",content:"Pending",objectionLive:"",objectionClose:"",result:"",remark:""}
 ];
 
-loadData();
-exams.forEach(function(exam){
-    if(exam.examDate) calculateAutoDates(exam);
-});
-localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
-renderTable();
-
+/* ======================================================
+   SAFE STARTUP / PERSISTENT DATA
+   Never overwrite saved data with the default sample data.
+====================================================== */
 function loadData(){
-try{const saved=localStorage.getItem(STORAGE_KEY);if(saved){const data=JSON.parse(saved);if(Array.isArray(data))exams=data;}}catch(e){console.error(e)}
+    try{
+        let saved = localStorage.getItem(STORAGE_KEY);
+        if(!saved) saved = localStorage.getItem(STORAGE_KEY+"_backup");
+
+        // Compatibility with older tracker versions.
+        if(!saved){
+            const legacyKeys = [
+                "examContentTracker_v5",
+                "examContentTracker_v4",
+                "examContentTracker_v3",
+                "examContentTracker"
+            ];
+            for(const key of legacyKeys){
+                const old = localStorage.getItem(key);
+                if(old){ saved = old; break; }
+            }
+        }
+
+        if(saved){
+            const data = JSON.parse(saved);
+            if(Array.isArray(data)){
+                exams = data;
+                exams.forEach(function(exam){
+                    if(exam && exam.examDate) calculateAutoDates(exam);
+                });
+                // Keep the recovered data in the current storage key.
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(exams));
+                return true;
+            }
+        }
+    }catch(e){
+        console.error("Data load error:", e);
+    }
+    return false;
 }
+
+// Startup is intentionally delayed until the DOM is ready.
+// This prevents a refresh from rendering an empty table before the tracker
+// controls and authentication state are available.
+let trackerInitialized=false;
+function initializeTracker(){
+    if(trackerInitialized) return;
+    trackerInitialized=true;
+
+    const hasSavedData=loadData();
+    if(!hasSavedData){
+        exams.forEach(function(exam){
+            if(exam && exam.examDate) calculateAutoDates(exam);
+        });
+        // Create the initial storage only when no previous data exists.
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+    }
+
+    // Remove any accidental null/invalid rows from old versions.
+    exams=Array.isArray(exams)?exams.filter(e=>e && typeof e==='object'):[];
+    renderTable();
+}
+
 function saveData(){
  const u=currentUser();
  if(u && u.role!=="admin"){
    exams.forEach(exam=>{
-     if(exam._createdBy===u.username) exam._savedByUser=true;
+     if(exam && exam._createdBy===u.username) exam._savedByUser=true;
    });
  }
- localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+ try{
+   const payload=JSON.stringify(exams);
+   localStorage.setItem(STORAGE_KEY,payload);
+   // Secondary browser-local mirror for recovery if the main key is unavailable.
+   localStorage.setItem(STORAGE_KEY+"_backup",payload);
+ }catch(e){
+   alert("Unable to save tracker data in this browser. Please check browser storage permissions.");
+   console.error(e);
+   return;
+ }
  renderTable();
  flash(u && u.role!=="admin" ? "Data saved. Your project is now locked." : "Data saved successfully");
 }
@@ -1301,7 +1363,7 @@ function loginUser(){
  const found=getUsers().find(x=>x.username===u&&x.password===p);
  if(!found){document.getElementById("loginError").style.display="block";return}
  sessionStorage.setItem(SESSION_KEY,JSON.stringify({username:found.username,role:found.role,name:found.name}));
- document.getElementById("authOverlay").style.display="none";applyPermissions();
+ document.getElementById("authOverlay").style.display="none";applyPermissions();renderTable();
 }
 function logoutUser(){sessionStorage.removeItem(SESSION_KEY);location.reload()}
 function applyPermissions(){
@@ -1417,7 +1479,14 @@ function openAdminSettings(){
 
  renderUserManagement();
 }
-document.addEventListener("DOMContentLoaded",()=>{addAuthControls();applyPermissions()});
+document.addEventListener("DOMContentLoaded",()=>{
+  addAuthControls();
+  initializeTracker();
+  applyPermissions();
+  // Re-render once more after authentication controls are applied.
+  // This guarantees saved rows are visible immediately after refresh/login.
+  renderTable();
+});
 </script>
 </body>
 </html>
