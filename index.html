@@ -237,7 +237,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <th>Present</th><th>No. of State</th><th>No. of City</th><th>No. of Center</th>
 <th>IRD/Syllabus Received</th><th>City Live Date</th><th>Admit Card Live Date</th>
 <th>QP</th><th>Status</th><th>Content Request</th><th>Content Delivery</th>
-<th>Content Status</th><th>No. of Objection Live</th><th>No. of Objection Close</th>
+<th>Content Status</th><th>Objection Live</th><th>Objection Close</th>
 <th>Result Submit Date</th><th>Remark</th><th>Action</th>
 </tr></thead>
 <tbody id="tableBody"></tbody>
@@ -252,7 +252,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 const STORAGE_KEY="examContentTracker_v6";
 
 const fields=["project","examDate","applications","scheduled","present","states","cities","centers","ird","cityLive","admitCard","qp","status","request","delivery","content","objectionLive","objectionClose","result","remark"];
-const headers=["Project","Exam Date","Applications","Scheduled","Present","No. of State","No. of City","No. of Center","IRD/Syllabus Received","City Live Date","Admit Card Live Date","QP","Status","Content Request","Content Delivery","Content Status","No. of Objection Live","No. of Objection Close","Result Submit Date","Remark"];
+const headers=["Project","Exam Date","Applications","Scheduled","Present","No. of State","No. of City","No. of Center","IRD/Syllabus Received","City Live Date","Admit Card Live Date","QP","Status","Content Request","Content Delivery","Content Status","Objection Live","No. of Objection Close","Result Submit Date","Remark"];
 const numericFields=["applications","scheduled","present","states","cities","centers","qp"];
 const dateFields=["examDate","cityLive","admitCard","request","delivery","objectionLive","objectionClose","result"];
 
@@ -609,8 +609,8 @@ function convertExcelRows(rows){
         request:["contentrequest","request","contentrequestdate","requestdate"],
         delivery:["contentdelivery","delivery","contentdeliverydate","deliverydate"],
         content:["contentstatus","content"],
-        objectionLive:["noofobjectionlive","objectionlive","objectionopendate","objectionopen","objectionlivedate"],
-        objectionClose:["noofobjectionclose","objectionclose","objectionclosedate","objectionclosed"],
+        objectionLive:["objectionlive","objectionlive","objectionopendate","objectionopen","objectionlivedate"],
+        objectionClose:["objectionclose","objectionclose","objectionclosedate","objectionclosed"],
         result:["resultsubmitdate","resultsubmit","resultdate","resultsubmissiondate"],
         remark:["remark","remarks","comments","comment","notes"]
     };
