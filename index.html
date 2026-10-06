@@ -210,6 +210,241 @@ const XLSX_OFFLINE={
 
 function exportExcel(){try{const rows=[headers,...exams.map(exam=>fields.map(field=>exam[field]??''))],bytes=XLSX_OFFLINE.createXLSX(rows),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker.xlsx');flash('Excel exported successfully - offline mode');}catch(error){console.error(error);alert('Excel export failed.\n\n'+error.message);}}
 
+
+/* ======================================================
+   EXCEL ROW CONVERTER
+   Maps uploaded Excel headers to tracker fields.
+====================================================== */
+function convertExcelRows(rows){
+
+    function normalize(value){
+        return String(value ?? "")
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g,"");
+    }
+
+    const aliases = {
+        project:["project","projectname","examname","examination","exam"],
+        examDate:["examdate","examinationdate","dateofexam","examdatetime"],
+        applications:["applications","application","noofapplications","totalapplications","totalapplication"],
+        scheduled:["scheduled","scheduledcandidates","noscheduled","totalscheduled"],
+        present:["present","presentcandidates","nopresent","totalpresent"],
+        states:["noofstate","noofstates","states","state","numberofstate"],
+        cities:["noofcity","noofcities","cities","city","numberofcity"],
+        centers:["noofcenter","noofcenters","centers","center","numberofcenter","numberofcenters"],
+        ird:["irdsyllabusreceived","ird","syllabusreceived","irdsyllabus"],
+        cityLive:["citylivedate","citylive","citylaunchdate"],
+        admitCard:["admitcardlivedate","admitcardlive","admitcard","admitcarddate"],
+        qp:["qp","noofqp","numberofqp","numberofquestionpaper","questionpaper"],
+        status:["status","projectstatus","examstatus"],
+        request:["contentrequest","request","contentrequestdate","requestdate"],
+        delivery:["contentdelivery","delivery","contentdeliverydate","deliverydate"],
+        content:["contentstatus","content"],
+        objectionLive:["noofobjectionlive","objectionlive","objectionopendate","objectionopen","objectionlivedate"],
+        objectionClose:["noofobjectionclose","objectionclose","objectionclosedate","objectionclosed"],
+        result:["resultsubmitdate","resultsubmit","resultdate","resultsubmissiondate"],
+        remark:["remark","remarks","comments","comment","notes"]
+    };
+
+    const aliasMap = {};
+
+    Object.keys(aliases).forEach(field => {
+        aliases[field].forEach(alias => {
+            aliasMap[normalize(alias)] = field;
+        });
+    });
+
+    let headerIndex = -1;
+
+    // Look through the first 10 rows for the header row.
+    for(let i=0; i<Math.min(rows.length,10); i++){
+
+        const current = rows[i] || [];
+
+        const foundProject = current.some(cell =>
+            aliasMap[normalize(cell)] === "project"
+        );
+
+        if(foundProject){
+            headerIndex = i;
+            break;
+        }
+    }
+
+    if(headerIndex === -1){
+        throw new Error(
+            "Project column was not found. Please use the provided Excel Import Template."
+        );
+    }
+
+    const headerRow = rows[headerIndex] || [];
+    const headerMap = headerRow.map(normalize);
+    const result = [];
+
+    for(let r=headerIndex+1; r<rows.length; r++){
+
+        const row = rows[r] || [];
+
+        const item = {};
+
+        fields.forEach(field => {
+            item[field] = "";
+        });
+
+        for(let c=0; c<headerMap.length; c++){
+
+            const field = aliasMap[headerMap[c]];
+
+            if(!field) continue;
+
+            let value = row[c] ?? "";
+
+            if(numericFields.includes(field)){
+
+                if(value === "" || value === null){
+                    value = "";
+                }else{
+
+                    const number = Number(
+                        String(value)
+                            .replace(/,/g,"")
+                            .trim()
+                    );
+
+                    value = Number.isFinite(number) ? number : "";
+                }
+            }
+
+            if(dateFields.includes(field)){
+                value = convertImportedDate(value);
+            }
+
+            if(
+                !numericFields.includes(field) &&
+                !dateFields.includes(field)
+            ){
+                value = String(value ?? "").trim();
+            }
+
+            item[field] = value;
+        }
+
+        if(!item.status){
+            item.status = "Scheduled";
+        }
+
+        if(!item.content){
+            item.content = "Pending";
+        }
+
+        if(String(item.project || "").trim() !== ""){
+            result.push(item);
+        }
+    }
+
+    return result;
+}
+
+
+/* ======================================================
+   IMPORTED DATE CONVERTER
+====================================================== */
+function convertImportedDate(value){
+
+    if(value === "" || value === null || value === undefined){
+        return "";
+    }
+
+    // Already a valid HTML date format.
+    if(
+        typeof value === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(value.trim())
+    ){
+        return value.trim();
+    }
+
+    // Excel serial number.
+    if(
+        typeof value === "number" ||
+        (
+            typeof value === "string" &&
+            /^\d+(\.\d+)?$/.test(value.trim())
+        )
+    ){
+
+        const serial = Number(value);
+
+        if(serial > 20000 && serial < 100000){
+
+            const milliseconds =
+                Math.round(
+                    (serial - 25569) *
+                    86400 *
+                    1000
+                );
+
+            const date =
+                new Date(milliseconds);
+
+            if(!isNaN(date.getTime())){
+                return formatImportedDate(date);
+            }
+        }
+    }
+
+    const text = String(value).trim();
+
+    // DD/MM/YYYY or DD-MM-YYYY
+    let match = text.match(
+        /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
+    );
+
+    if(match){
+
+        const day = match[1].padStart(2,"0");
+        const month = match[2].padStart(2,"0");
+        const year = match[3];
+
+        return `${year}-${month}-${day}`;
+    }
+
+    // MM/DD/YYYY fallback.
+    match = text.match(
+        /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
+    );
+
+    if(match){
+
+        const first = Number(match[1]);
+        const second = Number(match[2]);
+
+        if(first <= 12 && second > 12){
+            return `${match[3]}-${String(first).padStart(2,"0")}-${String(second).padStart(2,"0")}`;
+        }
+    }
+
+    const date = new Date(text);
+
+    if(!isNaN(date.getTime())){
+        return formatImportedDate(date);
+    }
+
+    return "";
+}
+
+function formatImportedDate(date){
+
+    return (
+        date.getFullYear() +
+        "-" +
+        String(date.getMonth()+1).padStart(2,"0") +
+        "-" +
+        String(date.getDate()).padStart(2,"0")
+    );
+}
+
+
 function importExcel(){const input=document.createElement('input');input.type='file';input.accept='.xlsx,.xls,.csv';input.onchange=async function(){const file=input.files&&input.files[0];if(!file)return;try{let rows;const lower=file.name.toLowerCase();if(lower.endsWith('.csv'))rows=parseCSV(await file.text());else if(lower.endsWith('.xlsx'))rows=await XLSX_OFFLINE.parseXLSX(await file.arrayBuffer());else throw new Error('Legacy .xls files are not supported in the fully offline version. Please open the .xls file in Excel and save it as .xlsx, then import it.');if(!rows||rows.length<2)throw new Error('No data found in the selected file.');const imported=convertExcelRows(rows);if(!imported.length)throw new Error('No valid project records found. Please make sure the Excel file contains a Project column.');const replace=confirm('Found '+imported.length+' project(s).\n\nOK = REPLACE current data\nCancel = APPEND imported data');exams=replace?imported:exams.concat(imported);saveData();flash(imported.length+' project(s) imported successfully');}catch(error){console.error(error);alert('Excel import failed.\n\n'+error.message);}};input.click();}
 
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(ch==='"'){if(quoted&&next==='"'){field+='"';i++;}else quoted=!quoted;}else if(ch===','&&!quoted){row.push(field);field='';}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&next==='\n')i++;row.push(field);field='';if(row.some(v=>String(v).trim()!==''))rows.push(row);row=[];}else field+=ch;}if(field!==''||row.length){row.push(field);if(row.some(v=>String(v).trim()!==''))rows.push(row);}return rows;}
