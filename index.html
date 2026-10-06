@@ -660,7 +660,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <button class="btn primary" id="analysisBtn" onclick="openAnalysis()">📊 Overall Analysis</button>
 
 <button class="btn-add" onclick="addProject()">+ Add Project</button>
-<button class="btn-save" onclick="saveData()">Save</button><span id="cloudStatus" class="cloud-status" title="After Google Apps Script deployment, replace CLOUD_SYNC_URL in the HTML with the /exec URL.">☁ Cloud not connected</span>
+<button class="btn-save" onclick="saveData()">Save</button><button class="btn" onclick="forceCloudSync()" title="Reload data from Google Cloud">☁ Sync Now</button><span id="cloudStatus" class="cloud-status" title="After Google Apps Script deployment, replace CLOUD_SYNC_URL in the HTML with the /exec URL.">☁ Cloud not connected</span>
 <button class="btn-excel" onclick="exportExcel()">Export Excel</button>
 <button class="btn-import" onclick="importExcel()">Import Excel</button>
 <button class="btn-template" onclick="downloadTemplate()">Excel Template</button>
@@ -702,9 +702,9 @@ const STORAGE_KEY="examContentTracker_v6";
 /* ======================================================
    CLOUD SYNC (Google Apps Script backend)
    After deploying the backend, put its Web App URL and token here.
-   Example: https://script.google.com/macros/s/AKfycbyyMSPotoR-S5jwSFe_eSR9xqCW3YsuwHZh_unhPQHl-vKhRKDJ_kpz1mY4GXLQdBeflg/exec
+   Example: https://script.google.com/macros/s/AKfycbz5ynvYMmSPsSN52vgJXpEEBBtT6wSiY-DORmzdDcGY9dnvr-6iD_p7LX9wXG3gX69D/exec
 ====================================================== */
-const CLOUD_SYNC_URL="https://script.google.com/macros/s/AKfycbyyMSPotoR-S5jwSFe_eSR9xqCW3YsuwHZh_unhPQHl-vKhRKDJ_kpz1mY4GXLQdBeflg/exec";
+const CLOUD_SYNC_URL="https://script.google.com/macros/s/AKfycbyEZfrZfllaURCdKUddjlYUj_imsOtHol3lYJcPLcx9bzbHK2OQap3BsRCme-p54e14/exec";
 const CLOUD_SYNC_TOKEN="8Yh3jx42Ni5fdBzhDbQ0MU7bqP4sEod8";
 let cloudSyncBusy=false;
 const CLOUD_SYNC_PLACEHOLDER="PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_EXEC_URL_HERE";
@@ -716,48 +716,59 @@ function cloudStatus(message,ok=true){
   el.textContent=message;
   el.className="cloud-status "+(ok?"ok":"bad");
 }
-function cloudLoadData(){
-  if(!cloudSyncConfigured)return Promise.resolve(null);
+async function cloudLoadData(){
+  if(!cloudSyncConfigured)return null;
   return new Promise(function(resolve){
     cloudStatus("☁ Syncing…",true);
+
     const callbackName="__examTrackerCloud_"+Date.now()+"_"+Math.floor(Math.random()*100000);
     const script=document.createElement("script");
     let finished=false;
-    const cleanup=function(){
+
+    function cleanup(){
       try{delete window[callbackName];}catch(_){}
       if(script.parentNode)script.parentNode.removeChild(script);
-    };
-    const finish=function(data){
+    }
+
+    function finish(result){
       if(finished)return;
       finished=true;
       cleanup();
-      if(data && data.ok && Array.isArray(data.data)){
+
+      if(result && result.ok && Array.isArray(result.data)){
         cloudStatus("☁ Cloud synced",true);
-        resolve(data.data);
+        resolve(result.data);
       }else{
-        cloudStatus("☁ Offline / local",false);
+        console.error("Cloud load response:",result);
+        cloudStatus("☁ Cloud read failed",false);
         resolve(null);
       }
-    };
+    }
+
     window[callbackName]=finish;
+
     script.onerror=function(){
       if(finished)return;
       finished=true;
       cleanup();
       console.error("Cloud JSONP load failed");
-      cloudStatus("☁ Offline / local",false);
+      cloudStatus("☁ Cloud read failed",false);
       resolve(null);
     };
+
     script.src=CLOUD_SYNC_URL
       +"?token="+encodeURIComponent(CLOUD_SYNC_TOKEN)
       +"&callback="+encodeURIComponent(callbackName)
       +"&_="+Date.now();
+
     document.head.appendChild(script);
+
     setTimeout(function(){
       if(!finished){
         finished=true;
         cleanup();
-        cloudStatus("☁ Offline / local",false);
+        console.error("Cloud read timeout");
+        cloudStatus("☁ Cloud read timeout",false);
         resolve(null);
       }
     },15000);
@@ -767,14 +778,14 @@ function cloudLoadData(){
 async function cloudSaveData(){
   if(!cloudSyncConfigured)return false;
   if(cloudSyncBusy)return false;
+
   cloudSyncBusy=true;
+
   try{
     cloudStatus("☁ Saving…",true);
 
-    // Apps Script Content Service redirects its response to googleusercontent.com.
-    // A normal cross-origin fetch cannot reliably consume that response.
-    // A hidden HTML form can submit the POST cross-origin without CORS.
     const iframeName="cloudSaveFrame_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+
     const iframe=document.createElement("iframe");
     iframe.name=iframeName;
     iframe.style.display="none";
@@ -784,6 +795,7 @@ async function cloudSaveData(){
     form.method="POST";
     form.action=CLOUD_SYNC_URL;
     form.target=iframeName;
+    form.enctype="application/x-www-form-urlencoded";
     form.style.display="none";
 
     const tokenInput=document.createElement("input");
@@ -802,28 +814,65 @@ async function cloudSaveData(){
 
     await new Promise(function(resolve){
       let done=false;
-      const complete=function(){
+
+      function complete(){
         if(done)return;
         done=true;
         setTimeout(function(){
           try{form.remove();}catch(_){}
           try{iframe.remove();}catch(_){}
-        },500);
+        },1000);
         resolve();
-      };
+      }
+
       iframe.addEventListener("load",complete,{once:true});
-      setTimeout(complete,5000);
+      setTimeout(complete,6000);
+
       form.submit();
     });
 
-    cloudStatus("☁ Saved to cloud",true);
-    return true;
+    // Give Apps Script a moment to commit PropertiesService, then read back.
+    await new Promise(function(resolve){setTimeout(resolve,1000)});
+
+    const verified=await cloudLoadData();
+
+    if(verified && Array.isArray(verified)){
+      cloudStatus("☁ Saved & verified",true);
+      return true;
+    }
+
+    cloudStatus("☁ Save sent — verification failed",false);
+    return false;
+
   }catch(e){
     console.error("Cloud save error",e);
-    cloudStatus("☁ Local only — cloud save failed",false);
+    cloudStatus("☁ Cloud save failed",false);
     return false;
   }finally{
     cloudSyncBusy=false;
+  }
+}
+
+async function forceCloudSync(){
+  if(!cloudSyncConfigured){
+    alert("Cloud sync is not configured.");
+    return;
+  }
+
+  const remote=await cloudLoadData();
+
+  if(remote && Array.isArray(remote)){
+    exams=remote.filter(e=>e && typeof e==="object");
+    exams.forEach(function(exam){
+      if(exam && exam.examDate)calculateAutoDates(exam);
+    });
+
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+    localStorage.setItem(STORAGE_KEY+"_backup",JSON.stringify(exams));
+    renderTable();
+    flash("Cloud data refreshed successfully");
+  }else{
+    alert("Unable to read cloud data. Please check Apps Script deployment and Code.gs.");
   }
 }
 
