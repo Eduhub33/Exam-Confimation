@@ -1197,7 +1197,6 @@ function renderAnalysis(){
 const AUTH_KEY="examTrackerUsers_v1", SESSION_KEY="examTrackerSession_v1";
 function defaultUsers(){return [
  {username:"admin",password:"admin123",role:"admin",name:"Administrator"},
- {username:"Avanish",password:"abc123",role:"Manager",name:"Avanish"},
  {username:"user",password:"user123",role:"user",name:"User"}
 ];}
 function getUsers(){try{const x=JSON.parse(localStorage.getItem(AUTH_KEY));return Array.isArray(x)&&x.length?x:defaultUsers()}catch(e){return defaultUsers()}}
