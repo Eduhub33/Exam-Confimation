@@ -401,6 +401,157 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 #trackerTable th:nth-child(3),#trackerTable td:nth-child(3){border-right:2px solid #aeb8c2!important;box-shadow:2px 0 5px rgba(0,0,0,.10);}
 #trackerTable th:nth-child(1),#trackerTable th:nth-child(2){box-shadow:2px 0 4px rgba(0,0,0,.10);}
 </style>
+
+<style id="sticky-final-fix">
+/* Robust sticky header + first 3 columns */
+.table-wrap{
+  position:relative !important;
+  overflow-x:auto !important;
+  overflow-y:auto !important;
+  isolation:auto !important;
+  max-height:calc(100vh - 300px) !important;
+  min-height:350px !important;
+}
+#trackerTable{
+  border-collapse:separate !important;
+  border-spacing:0 !important;
+  min-width:2750px !important;
+}
+#trackerTable thead th{
+  position:sticky !important;
+  top:0 !important;
+  z-index:200 !important;
+  background:#17202a !important;
+  color:#fff !important;
+}
+/* Sl. */
+#trackerTable thead th:nth-child(1),#trackerTable tbody td:nth-child(1){
+  position:sticky !important; left:0 !important;
+  width:60px !important; min-width:60px !important; max-width:60px !important;
+}
+/* Project */
+#trackerTable thead th:nth-child(2),#trackerTable tbody td:nth-child(2){
+  position:sticky !important; left:60px !important;
+  width:230px !important; min-width:230px !important; max-width:230px !important;
+}
+/* Exam Date */
+#trackerTable thead th:nth-child(3),#trackerTable tbody td:nth-child(3){
+  position:sticky !important; left:290px !important;
+  width:180px !important; min-width:180px !important; max-width:180px !important;
+}
+#trackerTable tbody td:nth-child(1){z-index:101 !important;background:#fff !important;}
+#trackerTable tbody td:nth-child(2){z-index:100 !important;background:#fff !important;}
+#trackerTable tbody td:nth-child(3){z-index:99 !important;background:#fff !important;}
+#trackerTable thead th:nth-child(1){z-index:206 !important;}
+#trackerTable thead th:nth-child(2){z-index:205 !important;}
+#trackerTable thead th:nth-child(3){z-index:204 !important;}
+#trackerTable tbody tr:nth-child(even) td:nth-child(1),#trackerTable tbody tr:nth-child(even) td:nth-child(2),#trackerTable tbody tr:nth-child(even) td:nth-child(3){background:#f6f8fa !important;}
+#trackerTable tbody tr:hover td:nth-child(1),#trackerTable tbody tr:hover td:nth-child(2),#trackerTable tbody tr:hover td:nth-child(3){background:#fff3df !important;}
+#trackerTable thead th:nth-child(3),#trackerTable tbody td:nth-child(3){border-right:3px solid #8f9aa5 !important;box-shadow:3px 0 6px rgba(0,0,0,.16) !important;}
+</style>
+<style id="FINAL-STICKY-FIX">
+/* FINAL STICKY FIX: header + first 3 columns */
+.table-wrap{position:relative;overflow:auto;max-height:calc(100vh - 300px);isolation:isolate;}
+#trackerTable{border-collapse:separate;border-spacing:0;min-width:2750px;}
+#trackerTable thead th{position:sticky !important;top:0 !important;background:#17202a !important;color:#fff !important;z-index:100 !important;}
+#trackerTable thead th:nth-child(1){left:0 !important;width:60px !important;min-width:60px !important;max-width:60px !important;z-index:130 !important;}
+#trackerTable thead th:nth-child(2){left:60px !important;width:230px !important;min-width:230px !important;max-width:230px !important;z-index:129 !important;}
+#trackerTable thead th:nth-child(3){left:290px !important;width:180px !important;min-width:180px !important;max-width:180px !important;z-index:128 !important;}
+#trackerTable tbody td:nth-child(1){position:sticky !important;left:0 !important;width:60px !important;min-width:60px !important;max-width:60px !important;z-index:30 !important;background:#fff !important;}
+#trackerTable tbody td:nth-child(2){position:sticky !important;left:60px !important;width:230px !important;min-width:230px !important;max-width:230px !important;z-index:29 !important;background:#fff !important;}
+#trackerTable tbody td:nth-child(3){position:sticky !important;left:290px !important;width:180px !important;min-width:180px !important;max-width:180px !important;z-index:28 !important;background:#fff !important;}
+#trackerTable tbody tr:nth-child(even) td:nth-child(1),#trackerTable tbody tr:nth-child(even) td:nth-child(2),#trackerTable tbody tr:nth-child(even) td:nth-child(3){background:#f6f8fa !important;}
+#trackerTable tbody tr:hover td:nth-child(1),#trackerTable tbody tr:hover td:nth-child(2),#trackerTable tbody tr:hover td:nth-child(3){background:#fff3df !important;}
+#trackerTable th:nth-child(3),#trackerTable td:nth-child(3){border-right:3px solid #8f9aa5 !important;}
+#trackerTable th:nth-child(1),#trackerTable th:nth-child(2){border-right:1px solid #56616d !important;}
+</style>
+<style id="FINAL-STICKY-FIX">
+/* FINAL FIX: keep Sl., Project and Exam Date frozen in both directions */
+.table-wrap{
+  position:relative;
+  overflow:auto;
+  isolation:isolate;
+}
+#trackerTable{
+  position:relative;
+  overflow:visible !important;
+  border-collapse:separate !important;
+  border-spacing:0 !important;
+}
+/* Sl. No. */
+#trackerTable thead th:nth-child(1),
+#trackerTable tbody td:nth-child(1){
+  position:sticky !important;
+  left:0 !important;
+  width:60px !important;
+  min-width:60px !important;
+  max-width:60px !important;
+  background:#fff !important;
+}
+#trackerTable thead th:nth-child(1){
+  top:0 !important;
+  z-index:100 !important;
+  background:#17202a !important;
+}
+#trackerTable tbody td:nth-child(1){z-index:50 !important;}
+/* Project */
+#trackerTable thead th:nth-child(2),
+#trackerTable tbody td:nth-child(2){
+  position:sticky !important;
+  left:60px !important;
+  width:230px !important;
+  min-width:230px !important;
+  max-width:230px !important;
+  background:#fff !important;
+}
+#trackerTable thead th:nth-child(2){
+  top:0 !important;
+  z-index:99 !important;
+  background:#17202a !important;
+}
+#trackerTable tbody td:nth-child(2){z-index:49 !important;}
+/* Exam Date */
+#trackerTable thead th:nth-child(3),
+#trackerTable tbody td:nth-child(3){
+  position:sticky !important;
+  left:290px !important;
+  width:180px !important;
+  min-width:180px !important;
+  max-width:180px !important;
+  background:#fff !important;
+}
+#trackerTable thead th:nth-child(3){
+  top:0 !important;
+  z-index:98 !important;
+  background:#17202a !important;
+}
+#trackerTable tbody td:nth-child(3){z-index:48 !important;}
+/* Strong separators */
+#trackerTable th:nth-child(1),#trackerTable td:nth-child(1),
+#trackerTable th:nth-child(2),#trackerTable td:nth-child(2),
+#trackerTable th:nth-child(3),#trackerTable td:nth-child(3){
+  border-right:2px solid #aeb8c2 !important;
+}
+#trackerTable thead th:nth-child(1),
+#trackerTable thead th:nth-child(2),
+#trackerTable thead th:nth-child(3){
+  border-right:2px solid #56616d !important;
+}
+/* Make frozen cells opaque and keep row striping */
+#trackerTable tbody tr:nth-child(even) td:nth-child(1),
+#trackerTable tbody tr:nth-child(even) td:nth-child(2),
+#trackerTable tbody tr:nth-child(even) td:nth-child(3){background:#f6f8fa !important;}
+#trackerTable tbody tr:nth-child(odd) td:nth-child(1),
+#trackerTable tbody tr:nth-child(odd) td:nth-child(2),
+#trackerTable tbody tr:nth-child(odd) td:nth-child(3){background:#fff !important;}
+/* Header must always sit above frozen body cells */
+#trackerTable thead,#trackerTable thead tr{position:relative;z-index:90;}
+#trackerTable thead th{position:sticky !important;top:0 !important;z-index:90 !important;background:#17202a !important;}
+#trackerTable thead th:nth-child(1){z-index:100 !important;}
+#trackerTable thead th:nth-child(2){z-index:99 !important;}
+#trackerTable thead th:nth-child(3){z-index:98 !important;}
+</style>
+
 </head>
 <body>
 <div class="container">
