@@ -641,6 +641,11 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
   #trackerTable th{font-size:10px}
   #trackerTable td{font-size:10px}
 }
+
+.cloud-status{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:6px 10px;border-radius:7px;font-size:11px;font-weight:700;background:#eef2f6;color:#495057;border:1px solid #cbd3da;white-space:nowrap}
+.cloud-status.ok{background:#d1e7dd;color:#0f5132;border-color:#a3cfbb}
+.cloud-status.bad{background:#fff3cd;color:#856404;border-color:#ffe08a}
+@media(max-width:600px){.cloud-status{width:100%;grid-column:1/-1}}
 </style>
 
 </head>
@@ -655,7 +660,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <button class="btn primary" id="analysisBtn" onclick="openAnalysis()">📊 Overall Analysis</button>
 
 <button class="btn-add" onclick="addProject()">+ Add Project</button>
-<button class="btn-save" onclick="saveData()">Save</button>
+<button class="btn-save" onclick="saveData()">Save</button><span id="cloudStatus" class="cloud-status" title="After Google Apps Script deployment, replace CLOUD_SYNC_URL in the HTML with the /exec URL.">☁ Cloud not connected</span>
 <button class="btn-excel" onclick="exportExcel()">Export Excel</button>
 <button class="btn-import" onclick="importExcel()">Import Excel</button>
 <button class="btn-template" onclick="downloadTemplate()">Excel Template</button>
@@ -694,6 +699,64 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 
 <script>
 const STORAGE_KEY="examContentTracker_v6";
+/* ======================================================
+   CLOUD SYNC (Google Apps Script backend)
+   After deploying the backend, put its Web App URL and token here.
+   Example: https://script.google.com/macros/s/AKfycbz5ynvYMmSPsSN52vgJXpEEBBtT6wSiY-DORmzdDcGY9dnvr-6iD_p7LX9wXG3gX69D/exec
+====================================================== */
+const CLOUD_SYNC_URL="https://script.google.com/macros/s/AKfycbz5ynvYMmSPsSN52vgJXpEEBBtT6wSiY-DORmzdDcGY9dnvr-6iD_p7LX9wXG3gX69D/exec";
+const CLOUD_SYNC_TOKEN="8Yh3jx42Ni5fdBzhDbQ0MU7bqP4sEod8";
+let cloudSyncBusy=false;
+let cloudSyncConfigured=!!(CLOUD_SYNC_URL && CLOUD_SYNC_TOKEN && !CLOUD_SYNC_URL.includes("https://script.google.com/macros/s/AKfycbz5ynvYMmSPsSN52vgJXpEEBBtT6wSiY-DORmzdDcGY9dnvr-6iD_p7LX9wXG3gX69D/exec"));
+
+function cloudStatus(message,ok=true){
+  let el=document.getElementById("cloudStatus");
+  if(!el)return;
+  el.textContent=message;
+  el.className="cloud-status "+(ok?"ok":"bad");
+}
+async function cloudLoadData(){
+  if(!cloudSyncConfigured)return null;
+  try{
+    cloudStatus("☁ Syncing…",true);
+    const r=await fetch(CLOUD_SYNC_URL+"?token="+encodeURIComponent(CLOUD_SYNC_TOKEN),{cache:"no-store"});
+    if(!r.ok)throw new Error("Cloud server returned "+r.status);
+    const out=await r.json();
+    if(!out.ok || !Array.isArray(out.data))throw new Error(out.message||"Invalid cloud data");
+    cloudStatus("☁ Cloud synced",true);
+    return out.data;
+  }catch(e){
+    console.error("Cloud load error",e);
+    cloudStatus("☁ Offline / local",false);
+    return null;
+  }
+}
+async function cloudSaveData(){
+  if(!cloudSyncConfigured)return false;
+  if(cloudSyncBusy)return false;
+  cloudSyncBusy=true;
+  try{
+    cloudStatus("☁ Saving…",true);
+    const r=await fetch(CLOUD_SYNC_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token:CLOUD_SYNC_TOKEN,data:exams})});
+    if(!r.ok)throw new Error("Cloud server returned "+r.status);
+    const out=await r.json();
+    if(!out.ok)throw new Error(out.message||"Cloud save failed");
+    cloudStatus("☁ Saved to cloud",true);
+    return true;
+  }catch(e){
+    console.error("Cloud save error",e);
+    cloudStatus("☁ Local only — cloud save failed",false);
+    return false;
+  }finally{cloudSyncBusy=false;}
+}
+function persistData(){
+  try{
+    const payload=JSON.stringify(exams);
+    localStorage.setItem(STORAGE_KEY,payload);
+    localStorage.setItem(STORAGE_KEY+"_backup",payload);
+  }catch(e){console.error(e);}
+  if(cloudSyncConfigured) cloudSaveData();
+}
 
 const fields=["project","examDate","applications","scheduled","present","states","cities","centers","ird","cityLive","admitCard","qp","status","request","delivery","content","objectionLive","objectionClose","result","remark"];
 const headers=["Project","Exam Date","Applications","Scheduled","Present","% Attendance (Scheduled vs Present)","No. of State","No. of City","No. of Center","IRD/Syllabus Received","City Live Date","Admit Card Live Date","QP","Status","Content Request","Content Delivery","Content Status","No. of Objection Live","No. of Objection Close","Result Submit Date","Remark"];
@@ -792,6 +855,20 @@ function initializeTracker(){
     // Remove any accidental null/invalid rows from old versions.
     exams=Array.isArray(exams)?exams.filter(e=>e && typeof e==='object'):[];
     renderTable();
+    if(cloudSyncConfigured){
+      cloudLoadData().then(function(remote){
+        if(remote && Array.isArray(remote)){
+          exams=remote.filter(e=>e && typeof e==='object');
+          exams.forEach(function(exam){if(exam && exam.examDate)calculateAutoDates(exam);});
+          localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+          localStorage.setItem(STORAGE_KEY+"_backup",JSON.stringify(exams));
+          renderTable();
+          flash("Cloud data loaded successfully");
+        }
+      });
+    } else {
+      cloudStatus("☁ Local mode",true);
+    }
 }
 
 function saveData(){
@@ -812,6 +889,7 @@ function saveData(){
    return;
  }
  renderTable();
+ if(cloudSyncConfigured) cloudSaveData();
  flash(u && u.role!=="admin" ? "Data saved. Your project is now locked." : "Data saved successfully");
 }
 
@@ -1117,7 +1195,7 @@ function createMultiDateEditor(value,index,field){
             // refresh the table so the newly calculated values are displayed immediately.
             renderTable();
         }
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+        persistData();
     };
 
     clear.onclick=()=>{
@@ -1134,7 +1212,7 @@ function createMultiDateEditor(value,index,field){
         }
         refresh();
         if(field==="examDate") renderTable();
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+        persistData();
     };
 
     done.onclick=()=>{
@@ -1150,7 +1228,7 @@ function createMultiDateEditor(value,index,field){
             calculateAutoDates(exams[index]);
         }
 
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+        persistData();
         close();
         renderTable();
     };
@@ -1269,7 +1347,7 @@ if(field==="examDate"){
     exams[index].examDate=normalizeExamDates(value).join(",");
     calculateAutoDates(exams[index]);
 }
-localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+persistData();
 updateSummary();
 }
 function addProject(){
@@ -1280,7 +1358,7 @@ function addProject(){
    project._savedByUser=false;
  }
  exams.push(project);
- localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+ persistData();
  renderTable();
  flash("New project added. Fill the data and click Save to lock it.");
 }
