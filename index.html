@@ -1245,38 +1245,99 @@ function addAuthControls(){
 }
 function openAdminSettings(){
  if(!isAdmin()){alert("Admin access required.");return}
- // IMPORTANT: initialize/preserve the complete existing user list before opening management.
- const users=getUsers();
- saveUsers(users);
 
- const w=window.open("","adminUsers","width=760,height=600");
- if(!w){alert("Please allow pop-ups for User Management.");return}
+ let modal=document.getElementById("userManagementModal");
+ if(!modal){
+  modal=document.createElement("div");
+  modal.id="userManagementModal";
+  modal.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100001;display:flex;align-items:center;justify-content:center;padding:20px;";
+  modal.innerHTML=
+   '<div style="background:#fff;width:min(760px,95vw);max-height:90vh;overflow:auto;border-radius:14px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.35);font-family:Arial">'+
+   '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">'+
+   '<h2 style="margin:0">👥 User Management</h2>'+
+   '<button id="closeUserMgmt" style="padding:7px 12px;border:1px solid #ccc;border-radius:7px;background:#fff;cursor:pointer">✕ Close</button></div>'+
+   '<p style="font-size:13px;color:#555"><b>Admin account cannot be deleted.</b> Normal users can be added, password changed, or deleted.</p>'+
+   '<div id="userManagementTable"></div>'+
+   '<hr style="margin:18px 0">'+
+   '<h3>Add Normal User</h3>'+
+   '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end">'+
+   '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:5px">Username</label><input id="newUsername" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccc;border-radius:7px"></div>'+
+   '<div><label style="display:block;font-size:12px;font-weight:700;margin-bottom:5px">Password</label><input id="newPassword" type="password" style="width:100%;box-sizing:border-box;padding:9px;border:1px solid #ccc;border-radius:7px"></div>'+
+   '<button id="addNormalUserBtn" style="padding:10px 14px;border:0;border-radius:7px;background:#111827;color:#fff;font-weight:700;cursor:pointer">+ Add User</button>'+
+   '</div></div>';
+  document.body.appendChild(modal);
 
- const rows=users.map((u,i)=>
-  "<tr><td>"+u.username+"</td><td>"+u.role+"</td><td><button onclick='changePwd("+i+")'>Change Password</button></td><td>"+
-  (u.role==="admin"?"—":"<button onclick='removeUser("+i+")'>Delete User</button>")+
-  "</td></tr>").join("");
+  document.getElementById("closeUserMgmt").onclick=()=>modal.remove();
+  document.getElementById("addNormalUserBtn").onclick=()=>{
+   const username=document.getElementById("newUsername").value.trim();
+   const password=document.getElementById("newPassword").value;
+   if(!username){alert("Please enter a username.");return}
+   if(!password){alert("Please enter a password.");return}
 
- const authKey=AUTH_KEY;
- const defaultJson=JSON.stringify(defaultUsers()).replace(/</g,"\\u003c");
+   const users=getUsers();
+   if(users.some(u=>String(u.username).toLowerCase()===username.toLowerCase())){
+    alert("Username already exists.");return;
+   }
 
- w.document.write(
-  "<html><head><title>User Management</title><style>"+
-  "body{font-family:Arial;padding:20px;color:#111827}table{border-collapse:collapse;width:100%;margin-top:15px}"+
-  "th,td{border:1px solid #ddd;padding:9px;text-align:left}button{padding:6px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer}"+
-  "</style></head><body><h2>Admin User Management</h2>"+
-  "<p><b>Existing users are preserved.</b> New accounts are created as Normal User.</p>"+
-  "<table><tr><th>Username</th><th>Role</th><th>Password</th><th>Account</th></tr>"+rows+"</table>"+
-  "<p><button onclick='addUser()'>+ Add Normal User</button></p><script>"+
-  "const KEY='"+authKey+"';const DEFAULTS="+defaultJson+";"+
-  "function get(){try{let raw=localStorage.getItem(KEY);if(!raw){localStorage.setItem(KEY,JSON.stringify(DEFAULTS));return DEFAULTS.slice()}let x=JSON.parse(raw);return Array.isArray(x)&&x.length?x:DEFAULTS.slice()}catch(e){localStorage.setItem(KEY,JSON.stringify(DEFAULTS));return DEFAULTS.slice()}}"+
-  "function put(x){localStorage.setItem(KEY,JSON.stringify(x));location.reload()}"+
-  "function changePwd(i){let x=get();if(!x[i])return;let p=prompt('New password for '+x[i].username);if(p===null)return;if(!p){alert('Password cannot be blank.');return}x[i].password=p;put(x)}"+
-  "function removeUser(i){let x=get();if(!x[i])return;if(x[i].role==='admin'){alert('Admin account cannot be deleted.');return}if(confirm('Delete '+x[i].username+'?')){x.splice(i,1);put(x)}}"+
-  "function addUser(){let x=get();let u=prompt('New username:');if(!u)return;u=u.trim();if(!u)return;if(x.some(a=>a.username.toLowerCase()===u.toLowerCase())){alert('Username already exists.');return}let p=prompt('Password for '+u+':');if(p===null)return;if(!p){alert('Password cannot be blank.');return}x.push({username:u,password:p,role:'user',name:u});put(x)}"+
-  "<\\/script></body></html>"
- );
- w.document.close();
+   users.push({username:username,password:password,role:"user",name:username});
+   saveUsers(users);
+
+   document.getElementById("newUsername").value="";
+   document.getElementById("newPassword").value="";
+   renderUserManagement();
+   alert("Normal user '"+username+"' added successfully.");
+  };
+ }
+
+ function renderUserManagement(){
+  const users=getUsers();
+  const box=document.getElementById("userManagementTable");
+  if(!box)return;
+
+  let rows=users.map((u,i)=>
+   '<tr>'+
+   '<td>'+escapeHtml(u.username)+'</td>'+
+   '<td>'+escapeHtml(u.role)+'</td>'+
+   '<td><button class="change-user-password" data-i="'+i+'" style="padding:6px 9px">Change Password</button></td>'+
+   '<td>'+(u.role==="admin"?'—':'<button class="delete-user-account" data-i="'+i+'" style="padding:6px 9px">Delete User</button>')+'</td>'+
+   '</tr>'
+  ).join("");
+
+  box.innerHTML='<table style="border-collapse:collapse;width:100%;font-size:13px">'+
+   '<tr><th style="border:1px solid #ddd;padding:8px;text-align:left">Username</th><th style="border:1px solid #ddd;padding:8px;text-align:left">Role</th><th style="border:1px solid #ddd;padding:8px;text-align:left">Password</th><th style="border:1px solid #ddd;padding:8px;text-align:left">Account</th></tr>'+
+   rows+'</table>';
+
+  box.querySelectorAll(".change-user-password").forEach(btn=>{
+   btn.onclick=()=>{
+    const i=Number(btn.dataset.i), users=getUsers();
+    if(!users[i])return;
+    const pw=prompt("Enter new password for "+users[i].username);
+    if(pw===null)return;
+    if(!pw){alert("Password cannot be blank.");return}
+    users[i].password=pw;
+    saveUsers(users);
+    alert("Password changed successfully.");
+   };
+  });
+
+  box.querySelectorAll(".delete-user-account").forEach(btn=>{
+   btn.onclick=()=>{
+    const i=Number(btn.dataset.i), users=getUsers();
+    if(!users[i] || users[i].role==="admin")return;
+    if(confirm("Delete user '"+users[i].username+"'?")){
+     users.splice(i,1);
+     saveUsers(users);
+     renderUserManagement();
+    }
+   };
+  });
+ }
+
+ function escapeHtml(v){
+  return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+ }
+
+ renderUserManagement();
 }
 document.addEventListener("DOMContentLoaded",()=>{addAuthControls();applyPermissions()});
 </script>
