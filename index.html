@@ -110,7 +110,7 @@ tbody tr:hover td:nth-child(2){
 input,select,textarea{width:100%;border:1px solid #ccc;border-radius:4px;padding:6px;font-size:12px;background:#fff}
 input:focus,select:focus,textarea:focus{outline:2px solid #ff7900;border-color:#ff7900}
 textarea{min-width:180px;min-height:55px;resize:vertical}
-.project{min-width:180px}.date{min-width:125px}.num{min-width:80px}.remark{min-width:220px}
+.project{min-width:180px}.date{min-width:125px}.num{min-width:80px}.attendance-pct{min-width:120px;text-align:center;font-weight:700}.remark{min-width:220px}
 .multi-date-wrap{
     min-width:220px;
     position:relative;
@@ -273,7 +273,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <table id="trackerTable">
 <thead><tr>
 <th>Sl.</th><th>Project</th><th>Exam Date</th><th>Applications</th><th>Scheduled</th>
-<th>Present</th><th>No. of State</th><th>No. of City</th><th>No. of Center</th>
+<th>Present</th><th>% Attendance<br>(Scheduled vs Present)</th><th>No. of State</th><th>No. of City</th><th>No. of Center</th>
 <th>IRD/Syllabus Received</th><th>City Live Date</th><th>Admit Card Live Date</th>
 <th>QP</th><th>Status</th><th>Content Request</th><th>Content Delivery</th>
 <th>Content Status</th><th>No. of Objection Live</th><th>No. of Objection Close</th>
@@ -482,6 +482,23 @@ if(field!=="examDate"){
 }
 lockEditorElement(input,index);
 td.appendChild(input);tr.appendChild(td);
+
+// Auto-calculate attendance immediately after the Present column.
+if(field==="present"){
+    const attendanceTd=document.createElement("td");
+    attendanceTd.className="attendance-pct";
+    const scheduled=Number(exam.scheduled);
+    const present=Number(exam.present);
+    if(Number.isFinite(scheduled) && scheduled>0 && Number.isFinite(present)){
+        const pct=(present/scheduled)*100;
+        attendanceTd.textContent=pct.toFixed(2)+"%";
+        attendanceTd.title="Attendance = Present ÷ Scheduled × 100";
+    }else{
+        attendanceTd.textContent="-";
+        attendanceTd.title="Enter Scheduled and Present candidates";
+    }
+    tr.appendChild(attendanceTd);
+}
 });
 
 const action=document.createElement("td");action.className="action";
@@ -857,7 +874,7 @@ document.getElementById("totalWIP").textContent=exams.filter(e=>e.content==="WIP
 document.getElementById("totalPending").textContent=exams.filter(e=>e.content==="Pending").length;
 }
 
-function exportExcel(){if(!isAdmin()){alert("Only Admin can export Excel.");return;}try{const rows=[headers,...exams.map(exam=>fields.map(field=>exam[field]??''))],bytes=XLSX_OFFLINE.createXLSX(rows),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker.xlsx');flash('Excel exported successfully - offline mode');}catch(error){console.error(error);alert('Excel export failed.\n\n'+error.message);}}
+function exportExcel(){if(!isAdmin()){alert("Only Admin can export Excel.");return;}try{const rows=[headers,...exams.map(exam=>{const scheduled=Number(exam.scheduled);const present=Number(exam.present);const pct=(Number.isFinite(scheduled)&&scheduled>0&&Number.isFinite(present))?((present/scheduled)*100).toFixed(2)+'%':'';const values=[];fields.forEach(field=>{values.push(exam[field]??'');if(field==='present')values.push(pct);});return values;})],bytes=XLSX_OFFLINE.createXLSX(rows),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker.xlsx');flash('Excel exported successfully - offline mode');}catch(error){console.error(error);alert('Excel export failed.\n\n'+error.message);}}
 
 
 /* ======================================================
@@ -1106,7 +1123,7 @@ function importExcel(){if(!isAdmin()){alert("Only Admin can import Excel.");retu
 
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(ch==='"'){if(quoted&&next==='"'){field+='"';i++;}else quoted=!quoted;}else if(ch===','&&!quoted){row.push(field);field='';}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&next==='\n')i++;row.push(field);field='';if(row.some(v=>String(v).trim()!==''))rows.push(row);row=[];}else field+=ch;}if(field!==''||row.length){row.push(field);if(row.some(v=>String(v).trim()!==''))rows.push(row);}return rows;}
 
-function downloadTemplate(){if(!isAdmin()){alert("Only Admin can download the Excel template.");return;}try{const sampleRow=['Example Project','08/09/2026',742,742,700,5,8,10,'Yes','01/08/2026','03/09/2026',4,'Scheduled','18/07/2026','06/08/2026','WIP',0,0,'','Example remark'];const bytes=XLSX_OFFLINE.createXLSX([headers,sampleRow]),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker_Import_Template.xlsx');flash('Excel template downloaded - offline mode');}catch(error){console.error(error);alert('Template generation failed.\n\n'+error.message);}}
+function downloadTemplate(){if(!isAdmin()){alert("Only Admin can download the Excel template.");return;}try{const sampleRow=['Example Project','08/09/2026',742,742,700,'94.34%',5,8,10,'Yes','01/08/2026','03/09/2026',4,'Scheduled','18/07/2026','06/08/2026','WIP',0,0,'','Example remark'];const bytes=XLSX_OFFLINE.createXLSX([headers,sampleRow]),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker_Import_Template.xlsx');flash('Excel template downloaded - offline mode');}catch(error){console.error(error);alert('Template generation failed.\n\n'+error.message);}}
 
 function exportJSON(){
 const blob=new Blob([JSON.stringify(exams,null,2)],{type:"application/json"});
