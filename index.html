@@ -237,13 +237,13 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <th>Present</th><th>No. of State</th><th>No. of City</th><th>No. of Center</th>
 <th>IRD/Syllabus Received</th><th>City Live Date</th><th>Admit Card Live Date</th>
 <th>QP</th><th>Status</th><th>Content Request</th><th>Content Delivery</th>
-<th>Content Status</th><th>Objection Live</th><th>Objection Close</th>
+<th>Content Status</th><th>No. of Objection Live</th><th>No. of Objection Close</th>
 <th>Result Submit Date</th><th>Remark</th><th>Action</th>
 </tr></thead>
 <tbody id="tableBody"></tbody>
 </table>
 </div>
-<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">📅 Exam Date supports multiple dates &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
+<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
 </div>
 <div id="flash" class="flash"></div>
 
@@ -252,7 +252,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 const STORAGE_KEY="examContentTracker_v6";
 
 const fields=["project","examDate","applications","scheduled","present","states","cities","centers","ird","cityLive","admitCard","qp","status","request","delivery","content","objectionLive","objectionClose","result","remark"];
-const headers=["Project","Exam Date","Applications","Scheduled","Present","No. of State","No. of City","No. of Center","IRD/Syllabus Received","City Live Date","Admit Card Live Date","QP","Status","Content Request","Content Delivery","Content Status","Objection Live","No. of Objection Close","Result Submit Date","Remark"];
+const headers=["Project","Exam Date","Applications","Scheduled","Present","No. of State","No. of City","No. of Center","IRD/Syllabus Received","City Live Date","Admit Card Live Date","QP","Status","Content Request","Content Delivery","Content Status","No. of Objection Live","No. of Objection Close","Result Submit Date","Remark"];
 const numericFields=["applications","scheduled","present","states","cities","centers","qp"];
 const dateFields=["examDate","cityLive","admitCard","request","delivery","objectionLive","objectionClose","result"];
 
@@ -265,6 +265,10 @@ let exams=[
 ];
 
 loadData();
+exams.forEach(function(exam){
+    if(exam.examDate) calculateAutoDates(exam);
+});
+localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
 renderTable();
 
 function loadData(){
@@ -283,6 +287,7 @@ exams.forEach((exam,index)=>{
 const searchable=JSON.stringify(exam).toLowerCase();
 if(search && !searchable.includes(search))return;
 const tr=document.createElement("tr");
+tr.dataset.index=String(index);
 const sl=document.createElement("td");sl.textContent=index+1;tr.appendChild(sl);
 
 fields.forEach(field=>{
@@ -306,7 +311,16 @@ else if(field==="examDate"){
     input=createMultiDateEditor(exam[field]||"", index, field);
 }
 else if(dateFields.includes(field)){
-    input=document.createElement("input");input.type="date";input.className="date";input.value=exam[field]||"";
+    input=document.createElement("input");
+    input.type="date";
+    input.className="date";
+    input.value=exam[field]||"";
+    if(field==="cityLive" || field==="admitCard"){
+        input.readOnly=true;
+        input.title=field==="cityLive"
+            ? "Auto calculated: Exam Date - 15 days"
+            : "Auto calculated: Exam Date - 3 days";
+    }
 }
 else if(numericFields.includes(field)){
 input=document.createElement("input");input.type="number";input.min="0";input.step="1";input.className="num";input.value=exam[field]??"";
@@ -481,22 +495,42 @@ function createMultiDateEditor(value,index,field){
             dates.push(picker.value);
             dates.sort();
         }
+
+        exams[index][field]=dates.join(",");
+
         refresh();
         picker.value="";
+        if(field==="examDate"){
+            calculateAutoDates(exams[index]);
+            // refresh the table so the newly calculated values are displayed immediately.
+            renderTable();
+        }
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
     };
 
     clear.onclick=()=>{
         dates=[];
+        exams[index][field]="";
+        if(field==="examDate"){
+            exams[index].cityLive="";
+            exams[index].admitCard="";
+        }
         refresh();
+        if(field==="examDate") renderTable();
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
     };
 
     done.onclick=()=>{
         const value=dates.join(",");
         exams[index][field]=value;
+
+        if(field==="examDate"){
+            calculateAutoDates(exams[index]);
+        }
+
         localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
-        refresh();
         close();
-        updateSummary();
+        renderTable();
     };
 
     btn.onclick=(e)=>{
@@ -530,8 +564,75 @@ function createMultiDateEditor(value,index,field){
 function addOption(select,value){
 const option=document.createElement("option");option.value=value;option.textContent=value;select.appendChild(option);
 }
+
+/* AUTO DATE CALCULATION */
+function calculateDateMinus(dateString, days){
+    if(!dateString) return '';
+    const p=String(dateString).trim().split('-');
+    if(p.length!==3) return '';
+
+    const year=Number(p[0]);
+    const month=Number(p[1]);
+    const day=Number(p[2]);
+    if(!year || !month || !day) return '';
+
+    const d=new Date(year,month-1,day);
+    if(isNaN(d.getTime())) return '';
+
+    d.setDate(d.getDate()-Number(days||0));
+    const y=d.getFullYear();
+    const m=String(d.getMonth()+1).padStart(2,'0');
+    const dd=String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+dd;
+}
+
+function calculateAutoDates(exam){
+    const dates=normalizeExamDates(exam.examDate||"");
+    if(!dates.length){
+        exam.cityLive="";
+        exam.admitCard="";
+        return;
+    }
+    const planningDate=dates[0];
+    exam.cityLive=calculateDateMinus(planningDate,15);
+    exam.admitCard=calculateDateMinus(planningDate,3);
+}
+
+
+function applyAutoDatesToRow(index){
+    const exam=exams[index];
+    calculateAutoDates(exam);
+
+    // Find the exact rendered row by its original data index.
+    // This also works when the table is filtered by Search.
+    const visibleRow=document.querySelector('#tableBody tr[data-index="'+index+'"]');
+    if(!visibleRow) return;
+
+    // Sl No = 1, Project = 2, Exam Date = 3,
+    // City Live Date = 11, Admit Card Live Date = 12.
+    const cityInput=visibleRow.querySelector('td:nth-child(11) input');
+    const admitInput=visibleRow.querySelector('td:nth-child(12) input');
+
+    if(cityInput){
+        cityInput.value=exam.cityLive||'';
+        cityInput.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+    if(admitInput){
+        admitInput.value=exam.admitCard||'';
+        admitInput.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+}
+
 function updateField(index,field,value){
-exams[index][field]=numericFields.includes(field)?(value===""?"":Number(value)):value;
+if(numericFields.includes(field)){
+    exams[index][field]=value===""?"":Number(value);
+}else{
+    exams[index][field]=value;
+}
+if(field==="examDate"){
+    exams[index].examDate=normalizeExamDates(value).join(",");
+    calculateAutoDates(exams[index]);
+}
 localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
 updateSummary();
 }
@@ -609,8 +710,8 @@ function convertExcelRows(rows){
         request:["contentrequest","request","contentrequestdate","requestdate"],
         delivery:["contentdelivery","delivery","contentdeliverydate","deliverydate"],
         content:["contentstatus","content"],
-        objectionLive:["objectionlive","objectionlive","objectionopendate","objectionopen","objectionlivedate"],
-        objectionClose:["objectionclose","objectionclose","objectionclosedate","objectionclosed"],
+        objectionLive:["noofobjectionlive","objectionlive","objectionopendate","objectionopen","objectionlivedate"],
+        objectionClose:["noofobjectionclose","objectionclose","objectionclosedate","objectionclosed"],
         result:["resultsubmitdate","resultsubmit","resultdate","resultsubmissiondate"],
         remark:["remark","remarks","comments","comment","notes"]
     };
@@ -702,7 +803,11 @@ function convertExcelRows(rows){
             item[field] = value;
         }
 
-        if(!item.status){
+        if(item.examDate){
+    calculateAutoDates(item);
+}
+
+if(!item.status){
             item.status = "Scheduled";
         }
 
