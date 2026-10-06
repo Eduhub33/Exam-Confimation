@@ -377,7 +377,7 @@ td.appendChild(input);tr.appendChild(td);
 });
 
 const action=document.createElement("td");action.className="action";
-const button=document.createElement("button");button.className="delete-btn";button.textContent="Delete";
+const button=document.createElement("button");button.className="delete-btn delete-row-btn";button.textContent="Delete";
 button.onclick=()=>deleteProject(index);action.appendChild(button);tr.appendChild(action);
 tbody.appendChild(tr);
 });
@@ -680,7 +680,7 @@ function addProject(){
 exams.push({project:"New Project",examDate:"",applications:0,scheduled:0,present:0,states:0,cities:0,centers:0,ird:"",cityLive:"",admitCard:"",qp:0,status:"Scheduled",request:"",delivery:"",content:"Pending",objectionLive:"",objectionClose:"",result:"",remark:""});
 saveData();
 }
-function deleteProject(index){
+function deleteProject(index){ if(typeof isAdmin==="function" && !isAdmin()){ alert("Delete access is restricted to Admin users only."); return; }
 if(confirm("Are you sure you want to delete this project?")){exams.splice(index,1);saveData();}
 }
 function updateSummary(){
@@ -1233,7 +1233,7 @@ function applyPermissions(){
  const u=currentUser();
  if(!u){document.getElementById("authOverlay").style.display="flex";return}
  const b=document.getElementById("loginUserBadge"); if(b)b.textContent="👤 "+(u.name||u.username)+(isAdmin()?" (Admin)":" (User)");
- document.querySelectorAll(".delete-row-btn").forEach(x=>x.style.display=isAdmin()?"":"none");
+ document.querySelectorAll(".delete-row-btn,.delete-btn").forEach(x=>x.style.display=isAdmin()?"":"none");
  const a=document.getElementById("adminSettingsBtn");if(a)a.style.display=isAdmin()?"":"none";
 }
 function addAuthControls(){
