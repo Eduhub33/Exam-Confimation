@@ -1199,7 +1199,25 @@ function defaultUsers(){return [
  {username:"admin",password:"admin123",role:"admin",name:"Administrator"},
  {username:"user",password:"user123",role:"user",name:"User"}
 ];}
-function getUsers(){try{const x=JSON.parse(localStorage.getItem(AUTH_KEY));return Array.isArray(x)&&x.length?x:defaultUsers()}catch(e){return defaultUsers()}}
+function getUsers(){
+ try{
+  const raw=localStorage.getItem(AUTH_KEY);
+  if(!raw){
+   const d=defaultUsers();
+   localStorage.setItem(AUTH_KEY,JSON.stringify(d));
+   return d;
+  }
+  const x=JSON.parse(raw);
+  if(Array.isArray(x)&&x.length)return x;
+  const d=defaultUsers();
+  localStorage.setItem(AUTH_KEY,JSON.stringify(d));
+  return d;
+ }catch(e){
+  const d=defaultUsers();
+  localStorage.setItem(AUTH_KEY,JSON.stringify(d));
+  return d;
+ }
+}
 function saveUsers(x){localStorage.setItem(AUTH_KEY,JSON.stringify(x))}
 function currentUser(){try{return JSON.parse(sessionStorage.getItem(SESSION_KEY))}catch(e){return null}}
 function isAdmin(){const u=currentUser();return !!u&&u.role==="admin"}
@@ -1227,14 +1245,37 @@ function addAuthControls(){
 }
 function openAdminSettings(){
  if(!isAdmin()){alert("Admin access required.");return}
- const w=window.open("","adminUsers","width=760,height=600");if(!w){alert("Allow pop-ups.");return}
+ // IMPORTANT: initialize/preserve the complete existing user list before opening management.
  const users=getUsers();
- const rows=users.map((u,i)=>"<tr><td>"+u.username+"</td><td>"+u.role+"</td><td><button onclick='changePwd("+i+")'>Change Password</button></td><td>"+(u.role==="admin"?"—":"<button onclick='removeUser("+i+")'>Delete User</button>")+"</td></tr>").join("");
- w.document.write("<html><head><title>User Management</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:9px}button{padding:6px 9px}</style></head><body><h2>Admin User Management</h2><table><tr><th>Username</th><th>Role</th><th>Password</th><th>Account</th></tr>"+rows+"</table><p><button onclick='addUser()'>+ Add User</button></p><script>"+
-"function get(){return JSON.parse(localStorage.getItem('"+AUTH_KEY+"')||'[]')}function put(x){localStorage.setItem('"+AUTH_KEY+"',JSON.stringify(x));location.reload()}"+
-"function changePwd(i){let x=get(),p=prompt('New password for '+x[i].username);if(p){x[i].password=p;put(x)}}"+
-"function removeUser(i){let x=get();if(confirm('Delete '+x[i].username+'?')){x.splice(i,1);put(x)}}"+
-"function addUser(){let x=get(),u=prompt('Username');if(!u)return;if(x.some(a=>a.username===u)){alert('Username already exists');return}let p=prompt('Password');if(!p)return;x.push({username:u,password:p,role:'user',name:u});put(x)}<\/script></body></html>");
+ saveUsers(users);
+
+ const w=window.open("","adminUsers","width=760,height=600");
+ if(!w){alert("Please allow pop-ups for User Management.");return}
+
+ const rows=users.map((u,i)=>
+  "<tr><td>"+u.username+"</td><td>"+u.role+"</td><td><button onclick='changePwd("+i+")'>Change Password</button></td><td>"+
+  (u.role==="admin"?"—":"<button onclick='removeUser("+i+")'>Delete User</button>")+
+  "</td></tr>").join("");
+
+ const authKey=AUTH_KEY;
+ const defaultJson=JSON.stringify(defaultUsers()).replace(/</g,"\\u003c");
+
+ w.document.write(
+  "<html><head><title>User Management</title><style>"+
+  "body{font-family:Arial;padding:20px;color:#111827}table{border-collapse:collapse;width:100%;margin-top:15px}"+
+  "th,td{border:1px solid #ddd;padding:9px;text-align:left}button{padding:6px 9px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer}"+
+  "</style></head><body><h2>Admin User Management</h2>"+
+  "<p><b>Existing users are preserved.</b> New accounts are created as Normal User.</p>"+
+  "<table><tr><th>Username</th><th>Role</th><th>Password</th><th>Account</th></tr>"+rows+"</table>"+
+  "<p><button onclick='addUser()'>+ Add Normal User</button></p><script>"+
+  "const KEY='"+authKey+"';const DEFAULTS="+defaultJson+";"+
+  "function get(){try{let raw=localStorage.getItem(KEY);if(!raw){localStorage.setItem(KEY,JSON.stringify(DEFAULTS));return DEFAULTS.slice()}let x=JSON.parse(raw);return Array.isArray(x)&&x.length?x:DEFAULTS.slice()}catch(e){localStorage.setItem(KEY,JSON.stringify(DEFAULTS));return DEFAULTS.slice()}}"+
+  "function put(x){localStorage.setItem(KEY,JSON.stringify(x));location.reload()}"+
+  "function changePwd(i){let x=get();if(!x[i])return;let p=prompt('New password for '+x[i].username);if(p===null)return;if(!p){alert('Password cannot be blank.');return}x[i].password=p;put(x)}"+
+  "function removeUser(i){let x=get();if(!x[i])return;if(x[i].role==='admin'){alert('Admin account cannot be deleted.');return}if(confirm('Delete '+x[i].username+'?')){x.splice(i,1);put(x)}}"+
+  "function addUser(){let x=get();let u=prompt('New username:');if(!u)return;u=u.trim();if(!u)return;if(x.some(a=>a.username.toLowerCase()===u.toLowerCase())){alert('Username already exists.');return}let p=prompt('Password for '+u+':');if(p===null)return;if(!p){alert('Password cannot be blank.');return}x.push({username:u,password:p,role:'user',name:u});put(x)}"+
+  "<\\/script></body></html>"
+ );
  w.document.close();
 }
 document.addEventListener("DOMContentLoaded",()=>{addAuthControls();applyPermissions()});
