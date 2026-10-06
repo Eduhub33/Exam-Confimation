@@ -111,6 +111,90 @@ input,select,textarea{width:100%;border:1px solid #ccc;border-radius:4px;padding
 input:focus,select:focus,textarea:focus{outline:2px solid #ff7900;border-color:#ff7900}
 textarea{min-width:180px;min-height:55px;resize:vertical}
 .project{min-width:180px}.date{min-width:125px}.num{min-width:80px}.remark{min-width:220px}
+.multi-date-wrap{
+    min-width:220px;
+    position:relative;
+}
+.multi-date-input{
+    width:100%;
+    min-height:34px;
+    padding:6px 34px 6px 8px;
+    cursor:pointer;
+    background:#fff;
+}
+.multi-date-btn{
+    position:absolute;
+    right:4px;
+    top:4px;
+    width:28px;
+    height:27px;
+    padding:0;
+    border-radius:4px;
+    background:#0d6efd;
+    color:#fff;
+    font-size:15px;
+}
+.multi-date-popup{
+    position:fixed;
+    display:none;
+    width:320px;
+    max-width:calc(100vw - 20px);
+    background:#fff;
+    border:1px solid #bbb;
+    border-radius:8px;
+    box-shadow:0 8px 25px rgba(0,0,0,.22);
+    padding:12px;
+    z-index:10000;
+}
+.multi-date-popup.open{display:block}
+.multi-date-toolbar{
+    display:flex;
+    gap:6px;
+    align-items:center;
+    margin-bottom:8px;
+}
+.multi-date-toolbar input[type="date"]{
+    flex:1;
+}
+.multi-date-toolbar button{
+    padding:7px 9px;
+    background:#198754;
+    color:#fff;
+}
+.selected-dates{
+    display:flex;
+    flex-wrap:wrap;
+    gap:5px;
+    max-height:90px;
+    overflow:auto;
+    margin:8px 0;
+}
+.date-chip{
+    background:#e9f2ff;
+    border:1px solid #9ec5fe;
+    border-radius:14px;
+    padding:4px 8px;
+    font-size:11px;
+}
+.date-chip button{
+    background:none;
+    color:#dc3545;
+    padding:0 0 0 5px;
+    font-size:12px;
+}
+.multi-date-actions{
+    display:flex;
+    justify-content:space-between;
+    gap:6px;
+    border-top:1px solid #eee;
+    padding-top:8px;
+}
+.multi-date-actions button{
+    flex:1;
+    padding:7px;
+}
+.multi-date-clear{background:#dc3545;color:#fff}
+.multi-date-done{background:#0d6efd;color:#fff}
 .action{min-width:80px;text-align:center}.delete-btn{background:#dc3545;color:#fff;padding:6px 9px}
 .flash{position:fixed;right:20px;bottom:20px;background:#222;color:#fff;padding:12px 18px;border-radius:7px;display:none;z-index:9999}
 .excel-note{text-align:center;font-size:12px;color:#777;padding:8px}
@@ -159,7 +243,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <tbody id="tableBody"></tbody>
 </table>
 </div>
-<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">↕ Header stays fixed while scrolling &nbsp; | &nbsp; ↔ Sl. No. + Project columns stay fixed while horizontal scrolling</div>
+<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">📅 Exam Date supports multiple dates &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
 </div>
 <div id="flash" class="flash"></div>
 
@@ -218,8 +302,11 @@ input=document.createElement("select");
 ["Ready","WIP","Pending","Completed"].forEach(v=>addOption(input,v));
 input.value=exam[field]||"Pending";
 }
+else if(field==="examDate"){
+    input=createMultiDateEditor(exam[field]||"", index, field);
+}
 else if(dateFields.includes(field)){
-input=document.createElement("input");input.type="date";input.className="date";input.value=exam[field]||"";
+    input=document.createElement("input");input.type="date";input.className="date";input.value=exam[field]||"";
 }
 else if(numericFields.includes(field)){
 input=document.createElement("input");input.type="number";input.min="0";input.step="1";input.className="num";input.value=exam[field]??"";
@@ -229,7 +316,9 @@ input=document.createElement("input");input.type="text";input.value=exam[field]?
 if(field==="project")input.className="project";
 }
 
-input.addEventListener("change",function(){updateField(index,field,this.value)});
+if(field!=="examDate"){
+    input.addEventListener("change",function(){updateField(index,field,this.value)});
+}
 td.appendChild(input);tr.appendChild(td);
 });
 
@@ -239,6 +328,203 @@ button.onclick=()=>deleteProject(index);action.appendChild(button);tr.appendChil
 tbody.appendChild(tr);
 });
 updateSummary();
+}
+
+
+/* ======================================================
+   MULTI-DATE EXAM DATE SELECTOR
+   Stores dates as comma-separated YYYY-MM-DD values.
+====================================================== */
+function normalizeExamDates(value){
+    if(!value) return [];
+    return String(value)
+        .split(",")
+        .map(v=>v.trim())
+        .filter(Boolean)
+        .map(v=>convertImportedDate(v))
+        .filter(Boolean)
+        .filter((v,i,a)=>a.indexOf(v)===i)
+        .sort();
+}
+
+function displayExamDates(value){
+    const dates=normalizeExamDates(value);
+    return dates.map(formatDisplayDate).join(", ");
+}
+
+function formatDisplayDate(value){
+    const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : value;
+}
+
+function createMultiDateEditor(value,index,field){
+    const wrap=document.createElement("div");
+    wrap.className="multi-date-wrap";
+
+    const text=document.createElement("input");
+    text.type="text";
+    text.className="multi-date-input";
+    text.readOnly=true;
+    text.placeholder="Select multiple dates";
+    text.value=displayExamDates(value);
+    text.title="Click to select multiple exam dates";
+
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="multi-date-btn";
+    btn.innerHTML="📅";
+    btn.title="Select exam dates";
+
+    const popup=document.createElement("div");
+    popup.className="multi-date-popup";
+
+    const toolbar=document.createElement("div");
+    toolbar.className="multi-date-toolbar";
+
+    const picker=document.createElement("input");
+    picker.type="date";
+
+    const add=document.createElement("button");
+    add.type="button";
+    add.textContent="Add Date";
+
+    toolbar.appendChild(picker);
+    toolbar.appendChild(add);
+
+    const selected=document.createElement("div");
+    selected.className="selected-dates";
+
+    const actions=document.createElement("div");
+    actions.className="multi-date-actions";
+
+    const clear=document.createElement("button");
+    clear.type="button";
+    clear.className="multi-date-clear";
+    clear.textContent="Clear";
+
+    const done=document.createElement("button");
+    done.type="button";
+    done.className="multi-date-done";
+    done.textContent="Done";
+
+    actions.appendChild(clear);
+    actions.appendChild(done);
+
+    popup.appendChild(toolbar);
+    popup.appendChild(selected);
+    popup.appendChild(actions);
+
+    wrap.appendChild(text);
+    wrap.appendChild(btn);
+
+    let dates=normalizeExamDates(value);
+
+    function refresh(){
+        selected.innerHTML="";
+        dates.forEach(date=>{
+            const chip=document.createElement("span");
+            chip.className="date-chip";
+            chip.textContent=formatDisplayDate(date);
+
+            const remove=document.createElement("button");
+            remove.type="button";
+            remove.textContent="×";
+            remove.title="Remove date";
+            remove.onclick=()=>{
+                dates=dates.filter(d=>d!==date);
+                refresh();
+            };
+
+            chip.appendChild(remove);
+            selected.appendChild(chip);
+        });
+
+        text.value=dates.map(formatDisplayDate).join(", ");
+    }
+
+    function positionPopup(){
+        const rect=btn.getBoundingClientRect();
+        const popupWidth=320;
+        let left=rect.left;
+        let top=rect.bottom+5;
+
+        if(left+popupWidth>window.innerWidth-10){
+            left=Math.max(10,window.innerWidth-popupWidth-10);
+        }
+
+        if(top+250>window.innerHeight){
+            top=Math.max(10,rect.top-255);
+        }
+
+        popup.style.left=left+"px";
+        popup.style.top=top+"px";
+    }
+
+    function open(){
+        refresh();
+        if(!popup.parentElement) document.body.appendChild(popup);
+        popup.classList.add("open");
+        positionPopup();
+    }
+
+    function close(){
+        popup.classList.remove("open");
+        if(popup.parentElement) popup.remove();
+    }
+
+    add.onclick=()=>{
+        if(!picker.value){
+            alert("Please select an exam date first.");
+            return;
+        }
+        if(!dates.includes(picker.value)){
+            dates.push(picker.value);
+            dates.sort();
+        }
+        refresh();
+        picker.value="";
+    };
+
+    clear.onclick=()=>{
+        dates=[];
+        refresh();
+    };
+
+    done.onclick=()=>{
+        const value=dates.join(",");
+        exams[index][field]=value;
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+        refresh();
+        close();
+        updateSummary();
+    };
+
+    btn.onclick=(e)=>{
+        e.stopPropagation();
+        if(popup.classList.contains("open")) close();
+        else open();
+    };
+
+    text.onclick=(e)=>{
+        e.stopPropagation();
+        open();
+    };
+
+    popup.addEventListener("click",e=>e.stopPropagation());
+
+    document.addEventListener("click",function closeOutside(e){
+        if(!wrap.contains(e.target) && !popup.contains(e.target)){
+            close();
+        }
+    });
+
+    window.addEventListener("scroll",()=>{
+        if(popup.classList.contains("open")) positionPopup();
+    },true);
+
+    refresh();
+
+    return wrap;
 }
 
 function addOption(select,value){
@@ -399,7 +685,11 @@ function convertExcelRows(rows){
             }
 
             if(dateFields.includes(field)){
-                value = convertImportedDate(value);
+                if(field==="examDate" && String(value).includes(",")){
+                    value=normalizeExamDates(value).join(",");
+                }else{
+                    value = convertImportedDate(value);
+                }
             }
 
             if(
