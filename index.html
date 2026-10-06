@@ -3,10 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Exam Content Tracker</title>
 
 <style>
-*{box-sizing:border-box}
+*{
+    box-sizing:border-box;
+}
 
 body{
     margin:0;
@@ -54,16 +57,48 @@ button{
     font-weight:600;
 }
 
-.btn-add{background:#198754;color:#fff}
-.btn-save{background:#ff7900;color:#fff}
-.btn-excel{background:#217346;color:#fff}
-.btn-import{background:#107c41;color:#fff}
-.btn-reset{background:#dc3545;color:#fff}
-.btn-json{background:#555;color:#fff}
+button:hover{
+    opacity:.9;
+}
+
+.btn-add{
+    background:#198754;
+    color:#fff;
+}
+
+.btn-save{
+    background:#ff7900;
+    color:#fff;
+}
+
+.btn-excel{
+    background:#217346;
+    color:#fff;
+}
+
+.btn-import{
+    background:#107c41;
+    color:#fff;
+}
+
+.btn-template{
+    background:#0d6efd;
+    color:#fff;
+}
+
+.btn-reset{
+    background:#dc3545;
+    color:#fff;
+}
+
+.btn-json{
+    background:#555;
+    color:#fff;
+}
 
 .search{
     margin-left:auto;
-    min-width:250px;
+    min-width:280px;
     padding:9px 12px;
     border:1px solid #ccc;
     border-radius:6px;
@@ -104,7 +139,7 @@ button{
 
 table{
     width:100%;
-    min-width:2500px;
+    min-width:2700px;
     border-collapse:collapse;
 }
 
@@ -146,13 +181,13 @@ textarea:focus{
 }
 
 textarea{
-    min-width:180px;
+    min-width:200px;
     min-height:55px;
     resize:vertical;
 }
 
 .project{
-    min-width:180px;
+    min-width:190px;
 }
 
 .date{
@@ -160,11 +195,11 @@ textarea{
 }
 
 .num{
-    min-width:80px;
+    min-width:85px;
 }
 
 .remark{
-    min-width:220px;
+    min-width:240px;
 }
 
 .action{
@@ -197,7 +232,8 @@ textarea{
     padding:8px;
 }
 
-@media(max-width:900px){
+@media(max-width:1000px){
+
     .summary{
         grid-template-columns:repeat(2,1fr);
     }
@@ -214,146 +250,168 @@ textarea{
 
 <div class="container">
 
-<div class="header">
-    <h1>Exam Content Tracker</h1>
-    <p>Project-wise Examination & Content Management Dashboard</p>
-</div>
+    <div class="header">
+        <h1>Exam Content Tracker</h1>
+        <p>Project-wise Examination & Content Management Dashboard</p>
+    </div>
 
-<div class="toolbar">
+    <div class="toolbar">
 
-    <button class="btn-add" onclick="addProject()">
-        + Add Project
-    </button>
+        <button class="btn-add" onclick="addProject()">
+            + Add Project
+        </button>
 
-    <button class="btn-save" onclick="saveData()">
-        Save
-    </button>
+        <button class="btn-save" onclick="saveData()">
+            Save
+        </button>
 
-    <button class="btn-excel" onclick="exportExcel()">
-        Export Excel
-    </button>
+        <button class="btn-excel" onclick="exportExcel()">
+            Export Excel
+        </button>
 
-    <button class="btn-import" onclick="importExcel()">
-        Import Excel
-    </button>
+        <button class="btn-import" onclick="importExcel()">
+            Import Excel
+        </button>
 
-    <button class="btn-json" onclick="exportJSON()">
-        Backup JSON
-    </button>
+        <button class="btn-template" onclick="downloadTemplate()">
+            Excel Template
+        </button>
 
-    <button class="btn-json" onclick="importJSON()">
-        Restore JSON
-    </button>
+        <button class="btn-json" onclick="exportJSON()">
+            Backup JSON
+        </button>
 
-    <button class="btn-reset" onclick="resetData()">
-        Reset
-    </button>
+        <button class="btn-json" onclick="importJSON()">
+            Restore JSON
+        </button>
 
-    <input
-        id="search"
-        class="search"
-        type="text"
-        placeholder="Search project..."
-        oninput="renderTable()"
-    >
+        <button class="btn-reset" onclick="resetData()">
+            Reset
+        </button>
 
-</div>
+        <input
+            id="search"
+            class="search"
+            type="text"
+            placeholder="Search project or any field..."
+            oninput="renderTable()"
+        >
 
-<div class="summary">
+    </div>
 
-<div class="card">
-<div class="number" id="totalProjects">0</div>
-<div class="label">Projects</div>
-</div>
+    <div class="summary">
 
-<div class="card">
-<div class="number" id="totalApplications">0</div>
-<div class="label">Applications</div>
-</div>
+        <div class="card">
+            <div class="number" id="totalProjects">0</div>
+            <div class="label">Projects</div>
+        </div>
 
-<div class="card">
-<div class="number" id="totalScheduled">0</div>
-<div class="label">Scheduled</div>
-</div>
+        <div class="card">
+            <div class="number" id="totalApplications">0</div>
+            <div class="label">Applications</div>
+        </div>
 
-<div class="card">
-<div class="number" id="totalPresent">0</div>
-<div class="label">Present</div>
-</div>
+        <div class="card">
+            <div class="number" id="totalScheduled">0</div>
+            <div class="label">Scheduled</div>
+        </div>
 
-<div class="card">
-<div class="number" id="totalReady">0</div>
-<div class="label">Ready</div>
-</div>
+        <div class="card">
+            <div class="number" id="totalPresent">0</div>
+            <div class="label">Present</div>
+        </div>
 
-<div class="card">
-<div class="number" id="totalWIP">0</div>
-<div class="label">WIP</div>
-</div>
+        <div class="card">
+            <div class="number" id="totalReady">0</div>
+            <div class="label">Ready</div>
+        </div>
 
-<div class="card">
-<div class="number" id="totalPending">0</div>
-<div class="label">Pending</div>
-</div>
+        <div class="card">
+            <div class="number" id="totalWIP">0</div>
+            <div class="label">WIP</div>
+        </div>
 
-</div>
+        <div class="card">
+            <div class="number" id="totalPending">0</div>
+            <div class="label">Pending</div>
+        </div>
 
-<div class="table-wrap">
+    </div>
 
-<table id="trackerTable">
+    <div class="table-wrap">
 
-<thead>
-<tr>
-<th>Sl.</th>
-<th>Project</th>
-<th>Exam Date</th>
-<th>Applications</th>
-<th>Scheduled</th>
-<th>Present</th>
-<th>No. of State</th>
-<th>No. of City</th>
-<th>No. of Center</th>
-<th>IRD/Syllabus Received</th>
-<th>City Live Date</th>
-<th>Admit Card Live Date</th>
-<th>QP</th>
-<th>Status</th>
-<th>Content Request</th>
-<th>Content Delivery</th>
-<th>Content Status</th>
-<th>No. of Objection Live</th>
-<th>No. of Objection Close</th>
-<th>Result Submit Date</th>
-<th>Remark</th>
-<th>Action</th>
-</tr>
-</thead>
+        <table id="trackerTable">
 
-<tbody id="tableBody"></tbody>
+            <thead>
 
-</table>
+                <tr>
 
-</div>
+                    <th>Sl.</th>
+                    <th>Project</th>
+                    <th>Exam Date</th>
+                    <th>Applications</th>
+                    <th>Scheduled</th>
+                    <th>Present</th>
+                    <th>No. of State</th>
+                    <th>No. of City</th>
+                    <th>No. of Center</th>
+                    <th>IRD/Syllabus Received</th>
+                    <th>City Live Date</th>
+                    <th>Admit Card Live Date</th>
+                    <th>QP</th>
+                    <th>Status</th>
+                    <th>Content Request</th>
+                    <th>Content Delivery</th>
+                    <th>Content Status</th>
+                    <th>No. of Objection Live</th>
+                    <th>No. of Objection Close</th>
+                    <th>Result Submit Date</th>
+                    <th>Remark</th>
+                    <th>Action</th>
 
-<div class="excel-note">
-    Excel Import supports <b>.xlsx</b> and <b>.xls</b>.
-    No external library is required.
-</div>
+                </tr>
+
+            </thead>
+
+            <tbody id="tableBody"></tbody>
+
+        </table>
+
+    </div>
+
+    <div class="excel-note">
+        Excel Import supports <b>.xlsx</b> and <b>.xls</b>.
+        Download the Excel Template before importing.
+    </div>
 
 </div>
 
 <div id="flash" class="flash"></div>
 
 
+<!--
+=========================================================
+SHEETJS EXCEL LIBRARY
+=========================================================
+-->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+
 <script>
 
-/* =====================================================
-   CONFIGURATION
-===================================================== */
+/* ======================================================
+   STORAGE
+====================================================== */
 
-const STORAGE_KEY = "examContentTracker_v5";
+const STORAGE_KEY = "examContentTracker_v6";
+
+
+/* ======================================================
+   FIELDS
+====================================================== */
 
 const fields = [
+
     "project",
     "examDate",
     "applications",
@@ -374,9 +432,12 @@ const fields = [
     "objectionClose",
     "result",
     "remark"
+
 ];
 
+
 const headers = [
+
     "Project",
     "Exam Date",
     "Applications",
@@ -397,9 +458,12 @@ const headers = [
     "No. of Objection Close",
     "Result Submit Date",
     "Remark"
+
 ];
 
+
 const numericFields = [
+
     "applications",
     "scheduled",
     "present",
@@ -407,9 +471,12 @@ const numericFields = [
     "cities",
     "centers",
     "qp"
+
 ];
 
+
 const dateFields = [
+
     "examDate",
     "cityLive",
     "admitCard",
@@ -418,156 +485,155 @@ const dateFields = [
     "objectionLive",
     "objectionClose",
     "result"
+
 ];
 
 
-/* =====================================================
+/* ======================================================
    DEFAULT DATA
-===================================================== */
+====================================================== */
 
 let exams = [
 
-{
-project:"PSPCL (Punjabi Lang)",
-examDate:"2026-07-20",
-applications:2431,
-scheduled:2431,
-present:"",
-states:"",
-cities:"",
-centers:"",
-ird:"",
-cityLive:"",
-admitCard:"",
-qp:1,
-status:"Completed",
-request:"",
-delivery:"",
-content:"Ready",
-objectionLive:"",
-objectionClose:"",
-result:"",
-remark:"Exam Completed"
-},
+    {
+        project:"PSPCL (Punjabi Lang)",
+        examDate:"2026-07-20",
+        applications:2431,
+        scheduled:2431,
+        present:"",
+        states:"",
+        cities:"",
+        centers:"",
+        ird:"",
+        cityLive:"",
+        admitCard:"",
+        qp:1,
+        status:"Completed",
+        request:"",
+        delivery:"",
+        content:"Ready",
+        objectionLive:"",
+        objectionClose:"",
+        result:"",
+        remark:"Exam Completed"
+    },
 
-{
-project:"NBCC",
-examDate:"2026-07-25",
-applications:10664,
-scheduled:10664,
-present:"",
-states:"",
-cities:"",
-centers:"",
-ird:"",
-cityLive:"",
-admitCard:"",
-qp:10,
-status:"Scheduled",
-request:"",
-delivery:"",
-content:"Ready",
-objectionLive:"",
-objectionClose:"",
-result:"",
-remark:""
-},
+    {
+        project:"NBCC",
+        examDate:"2026-07-25",
+        applications:10664,
+        scheduled:10664,
+        present:"",
+        states:"",
+        cities:"",
+        centers:"",
+        ird:"",
+        cityLive:"",
+        admitCard:"",
+        qp:10,
+        status:"Scheduled",
+        request:"",
+        delivery:"",
+        content:"Ready",
+        objectionLive:"",
+        objectionClose:"",
+        result:"",
+        remark:""
+    },
 
-{
-project:"SPMCIL - IGM (Re-Exam)",
-examDate:"2026-08-03",
-applications:4,
-scheduled:4,
-present:"",
-states:"",
-cities:"",
-centers:"",
-ird:"",
-cityLive:"",
-admitCard:"",
-qp:1,
-status:"Scheduled",
-request:"",
-delivery:"",
-content:"Ready",
-objectionLive:"",
-objectionClose:"",
-result:"",
-remark:""
-},
+    {
+        project:"SPMCIL - IGM (Re-Exam)",
+        examDate:"2026-08-03",
+        applications:4,
+        scheduled:4,
+        present:"",
+        states:"",
+        cities:"",
+        centers:"",
+        ird:"",
+        cityLive:"",
+        admitCard:"",
+        qp:1,
+        status:"Scheduled",
+        request:"",
+        delivery:"",
+        content:"Ready",
+        objectionLive:"",
+        objectionClose:"",
+        result:"",
+        remark:""
+    },
 
-{
-project:"NHIDCL Stage 2",
-examDate:"2026-08-12",
-applications:742,
-scheduled:742,
-present:"",
-states:"",
-cities:"",
-centers:"",
-ird:"",
-cityLive:"",
-admitCard:"",
-qp:4,
-status:"Scheduled",
-request:"2026-07-18",
-delivery:"2026-08-06",
-content:"WIP",
-objectionLive:"",
-objectionClose:"",
-result:"",
-remark:""
-},
+    {
+        project:"NHIDCL Stage 2",
+        examDate:"2026-08-12",
+        applications:742,
+        scheduled:742,
+        present:"",
+        states:"",
+        cities:"",
+        centers:"",
+        ird:"",
+        cityLive:"",
+        admitCard:"",
+        qp:4,
+        status:"Scheduled",
+        request:"2026-07-18",
+        delivery:"2026-08-06",
+        content:"WIP",
+        objectionLive:"",
+        objectionClose:"",
+        result:"",
+        remark:""
+    },
 
-{
-project:"EDCIL-SMPCIL CNP",
-examDate:"2026-08-18",
-applications:1500,
-scheduled:1500,
-present:"",
-states:"",
-cities:"",
-centers:"",
-ird:"",
-cityLive:"",
-admitCard:"",
-qp:2,
-status:"Scheduled",
-request:"2026-07-20",
-delivery:"2026-08-10",
-content:"Pending",
-objectionLive:"",
-objectionClose:"",
-result:"",
-remark:""
-}
+    {
+        project:"EDCIL-SMPCIL CNP",
+        examDate:"2026-08-18",
+        applications:1500,
+        scheduled:1500,
+        present:"",
+        states:"",
+        cities:"",
+        centers:"",
+        ird:"",
+        cityLive:"",
+        admitCard:"",
+        qp:2,
+        status:"Scheduled",
+        request:"2026-07-20",
+        delivery:"2026-08-10",
+        content:"Pending",
+        objectionLive:"",
+        objectionClose:"",
+        result:"",
+        remark:""
+    }
 
 ];
 
 
-/* =====================================================
+/* ======================================================
    INITIAL LOAD
-===================================================== */
+====================================================== */
 
 loadData();
 renderTable();
 
 
-/* =====================================================
-   LOAD
-===================================================== */
+/* ======================================================
+   LOAD DATA
+====================================================== */
 
 function loadData(){
 
     try{
 
-        const saved =
-            localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(STORAGE_KEY);
 
         if(saved){
 
-            const data =
-                JSON.parse(saved);
+            const data = JSON.parse(saved);
 
             if(Array.isArray(data)){
                 exams = data;
@@ -575,7 +641,8 @@ function loadData(){
 
         }
 
-    }catch(error){
+    }
+    catch(error){
 
         console.error(error);
 
@@ -584,9 +651,9 @@ function loadData(){
 }
 
 
-/* =====================================================
-   SAVE
-===================================================== */
+/* ======================================================
+   SAVE DATA
+====================================================== */
 
 function saveData(){
 
@@ -602,9 +669,9 @@ function saveData(){
 }
 
 
-/* =====================================================
-   RENDER
-===================================================== */
+/* ======================================================
+   RENDER TABLE
+====================================================== */
 
 function renderTable(){
 
@@ -620,280 +687,279 @@ function renderTable(){
 
     tbody.innerHTML = "";
 
-    exams.forEach(
-        function(exam,index){
 
-            const searchable =
-                JSON.stringify(exam)
-                .toLowerCase();
+    exams.forEach(function(exam,index){
 
-            if(
-                search &&
-                !searchable.includes(search)
-            ){
-                return;
-            }
-
-            const tr =
-                document.createElement("tr");
+        const searchable =
+            JSON.stringify(exam).toLowerCase();
 
 
-            const sl =
+        if(
+            search &&
+            !searchable.includes(search)
+        ){
+
+            return;
+
+        }
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        /* Serial Number */
+
+        const sl =
+            document.createElement("td");
+
+        sl.textContent =
+            index + 1;
+
+        tr.appendChild(sl);
+
+
+        /* Fields */
+
+        fields.forEach(function(field){
+
+            const td =
                 document.createElement("td");
 
-            sl.textContent =
-                index + 1;
+            let input;
 
-            tr.appendChild(sl);
 
+            /* Remark */
 
-            fields.forEach(
-                function(field){
+            if(field === "remark"){
 
-                    const td =
-                        document.createElement("td");
+                input =
+                    document.createElement("textarea");
 
-                    let input;
+                input.className =
+                    "remark";
 
+                input.value =
+                    exam[field] ?? "";
 
-                    /* TEXTAREA */
+            }
 
-                    if(field === "remark"){
 
-                        input =
-                            document.createElement(
-                                "textarea"
-                            );
+            /* Status */
 
-                        input.className =
-                            "remark";
+            else if(field === "status"){
 
-                        input.value =
-                            exam[field] ?? "";
+                input =
+                    document.createElement("select");
 
-                    }
+                [
+                    "Scheduled",
+                    "Ongoing",
+                    "Completed",
+                    "Cancelled",
+                    "On Hold"
+                ].forEach(function(value){
 
-
-                    /* STATUS */
-
-                    else if(field === "status"){
-
-                        input =
-                            document.createElement(
-                                "select"
-                            );
-
-                        [
-                            "Scheduled",
-                            "Ongoing",
-                            "Completed",
-                            "Cancelled",
-                            "On Hold"
-                        ].forEach(
-                            function(value){
-
-                                const option =
-                                    document.createElement(
-                                        "option"
-                                    );
-
-                                option.value =
-                                    value;
-
-                                option.textContent =
-                                    value;
-
-                                input.appendChild(
-                                    option
-                                );
-
-                            }
-                        );
-
-                        input.value =
-                            exam[field] ||
-                            "Scheduled";
-
-                    }
-
-
-                    /* CONTENT */
-
-                    else if(field === "content"){
-
-                        input =
-                            document.createElement(
-                                "select"
-                            );
-
-                        [
-                            "Ready",
-                            "WIP",
-                            "Pending",
-                            "Completed"
-                        ].forEach(
-                            function(value){
-
-                                const option =
-                                    document.createElement(
-                                        "option"
-                                    );
-
-                                option.value =
-                                    value;
-
-                                option.textContent =
-                                    value;
-
-                                input.appendChild(
-                                    option
-                                );
-
-                            }
-                        );
-
-                        input.value =
-                            exam[field] ||
-                            "Pending";
-
-                    }
-
-
-                    /* DATE */
-
-                    else if(
-                        dateFields.includes(field)
-                    ){
-
-                        input =
-                            document.createElement(
-                                "input"
-                            );
-
-                        input.type =
-                            "date";
-
-                        input.className =
-                            "date";
-
-                        input.value =
-                            exam[field] || "";
-
-                    }
-
-
-                    /* NUMBER */
-
-                    else if(
-                        numericFields.includes(field)
-                    ){
-
-                        input =
-                            document.createElement(
-                                "input"
-                            );
-
-                        input.type =
-                            "number";
-
-                        input.min = "0";
-
-                        input.className =
-                            "num";
-
-                        input.value =
-                            exam[field] ?? "";
-
-                    }
-
-
-                    /* TEXT */
-
-                    else{
-
-                        input =
-                            document.createElement(
-                                "input"
-                            );
-
-                        input.type =
-                            "text";
-
-                        input.value =
-                            exam[field] ?? "";
-
-                        if(field === "project"){
-                            input.className =
-                                "project";
-                        }
-
-                    }
-
-
-                    input.addEventListener(
-                        "change",
-                        function(){
-
-                            updateField(
-                                index,
-                                field,
-                                this.value
-                            );
-
-                        }
+                    addOption(
+                        input,
+                        value
                     );
 
+                });
 
-                    td.appendChild(input);
+                input.value =
+                    exam[field] ||
+                    "Scheduled";
 
-                    tr.appendChild(td);
+            }
+
+
+            /* Content Status */
+
+            else if(field === "content"){
+
+                input =
+                    document.createElement("select");
+
+                [
+                    "Ready",
+                    "WIP",
+                    "Pending",
+                    "Completed"
+                ].forEach(function(value){
+
+                    addOption(
+                        input,
+                        value
+                    );
+
+                });
+
+                input.value =
+                    exam[field] ||
+                    "Pending";
+
+            }
+
+
+            /* Date */
+
+            else if(
+                dateFields.includes(field)
+            ){
+
+                input =
+                    document.createElement("input");
+
+                input.type =
+                    "date";
+
+                input.className =
+                    "date";
+
+                input.value =
+                    exam[field] || "";
+
+            }
+
+
+            /* Number */
+
+            else if(
+                numericFields.includes(field)
+            ){
+
+                input =
+                    document.createElement("input");
+
+                input.type =
+                    "number";
+
+                input.min =
+                    "0";
+
+                input.step =
+                    "1";
+
+                input.className =
+                    "num";
+
+                input.value =
+                    exam[field] ?? "";
+
+            }
+
+
+            /* Text */
+
+            else{
+
+                input =
+                    document.createElement("input");
+
+                input.type =
+                    "text";
+
+                input.value =
+                    exam[field] ?? "";
+
+
+                if(field === "project"){
+
+                    input.className =
+                        "project";
+
+                }
+
+            }
+
+
+            input.addEventListener(
+                "change",
+                function(){
+
+                    updateField(
+                        index,
+                        field,
+                        this.value
+                    );
 
                 }
             );
 
 
-            /* DELETE */
+            td.appendChild(input);
 
-            const action =
-                document.createElement("td");
+            tr.appendChild(td);
 
-            action.className =
-                "action";
-
-            const button =
-                document.createElement("button");
-
-            button.className =
-                "delete-btn";
-
-            button.textContent =
-                "Delete";
-
-            button.onclick =
-                function(){
-
-                    deleteProject(index);
-
-                };
-
-            action.appendChild(button);
-
-            tr.appendChild(action);
+        });
 
 
-            tbody.appendChild(tr);
+        /* Delete */
 
-        }
-    );
+        const action =
+            document.createElement("td");
+
+        action.className =
+            "action";
+
+
+        const button =
+            document.createElement("button");
+
+        button.className =
+            "delete-btn";
+
+        button.textContent =
+            "Delete";
+
+
+        button.onclick =
+            function(){
+
+                deleteProject(index);
+
+            };
+
+
+        action.appendChild(button);
+
+        tr.appendChild(action);
+
+
+        tbody.appendChild(tr);
+
+    });
+
 
     updateSummary();
 
 }
 
 
-/* =====================================================
+/* ======================================================
+   SELECT OPTION
+====================================================== */
+
+function addOption(select,value){
+
+    const option =
+        document.createElement("option");
+
+    option.value =
+        value;
+
+    option.textContent =
+        value;
+
+    select.appendChild(option);
+
+}
+
+
+/* ======================================================
    UPDATE FIELD
-===================================================== */
+====================================================== */
 
 function updateField(
     index,
@@ -918,19 +984,21 @@ function updateField(
 
     }
 
+
     localStorage.setItem(
         STORAGE_KEY,
         JSON.stringify(exams)
     );
+
 
     updateSummary();
 
 }
 
 
-/* =====================================================
-   ADD
-===================================================== */
+/* ======================================================
+   ADD PROJECT
+====================================================== */
 
 function addProject(){
 
@@ -978,79 +1046,55 @@ function addProject(){
 
     });
 
+
     saveData();
 
 }
 
 
-/* =====================================================
-   DELETE
-===================================================== */
+/* ======================================================
+   DELETE PROJECT
+====================================================== */
 
 function deleteProject(index){
 
     if(
-        !confirm(
+        confirm(
             "Are you sure you want to delete this project?"
         )
     ){
-        return;
+
+        exams.splice(index,1);
+
+        saveData();
+
     }
-
-    exams.splice(index,1);
-
-    saveData();
 
 }
 
 
-/* =====================================================
+/* ======================================================
    SUMMARY
-===================================================== */
+====================================================== */
 
 function updateSummary(){
 
-    const applications =
-        exams.reduce(
-            (sum,e)=>
-                sum +
-                Number(e.applications || 0),
-            0
-        );
+    const total =
+        function(key){
 
-    const scheduled =
-        exams.reduce(
-            (sum,e)=>
-                sum +
-                Number(e.scheduled || 0),
-            0
-        );
+            return exams.reduce(
+                function(sum,exam){
 
-    const present =
-        exams.reduce(
-            (sum,e)=>
-                sum +
-                Number(e.present || 0),
-            0
-        );
+                    return sum +
+                        Number(
+                            exam[key] || 0
+                        );
 
-    const ready =
-        exams.filter(
-            e =>
-                e.content === "Ready"
-        ).length;
+                },
+                0
+            );
 
-    const wip =
-        exams.filter(
-            e =>
-                e.content === "WIP"
-        ).length;
-
-    const pending =
-        exams.filter(
-            e =>
-                e.content === "Pending"
-        ).length;
+        };
 
 
     document.getElementById(
@@ -1058,191 +1102,154 @@ function updateSummary(){
     ).textContent =
         exams.length;
 
+
     document.getElementById(
         "totalApplications"
     ).textContent =
-        applications.toLocaleString();
+        total("applications")
+        .toLocaleString();
+
 
     document.getElementById(
         "totalScheduled"
     ).textContent =
-        scheduled.toLocaleString();
+        total("scheduled")
+        .toLocaleString();
+
 
     document.getElementById(
         "totalPresent"
     ).textContent =
-        present.toLocaleString();
+        total("present")
+        .toLocaleString();
+
 
     document.getElementById(
         "totalReady"
     ).textContent =
-        ready;
+        exams.filter(
+            e => e.content === "Ready"
+        ).length;
+
 
     document.getElementById(
         "totalWIP"
     ).textContent =
-        wip;
+        exams.filter(
+            e => e.content === "WIP"
+        ).length;
+
 
     document.getElementById(
         "totalPending"
     ).textContent =
-        pending;
+        exams.filter(
+            e => e.content === "Pending"
+        ).length;
 
 }
 
 
-/* =====================================================
-   EXPORT EXCEL
-===================================================== */
+/* ======================================================
+   EXPORT REAL XLSX
+====================================================== */
 
 function exportExcel(){
+
+    if(
+        typeof XLSX === "undefined"
+    ){
+
+        alert(
+            "Excel library is not loaded. Please check your internet connection."
+        );
+
+        return;
+
+    }
+
 
     const rows =
         exams.map(
             function(exam,index){
 
                 return [
+
                     index + 1,
+
                     ...fields.map(
-                        field =>
-                            exam[field] ?? ""
+                        function(field){
+
+                            return exam[field] ?? "";
+
+                        }
                     )
+
                 ];
 
             }
         );
 
 
-    const allHeaders =
-        ["Sl.",...headers];
+    const aoa = [
+
+        [
+            "Sl.",
+            ...headers
+        ],
+
+        ...rows
+
+    ];
 
 
-    let html =
-`
-<html
-xmlns:o="urn:schemas-microsoft-com:office:office"
-xmlns:x="urn:schemas-microsoft-com:office:excel"
-xmlns="http://www.w3.org/TR/REC-html40">
-
-<head>
-
-<meta charset="UTF-8">
-
-<!--[if gte mso 9]>
-
-<xml>
-
-<x:ExcelWorkbook>
-
-<x:ExcelWorksheets>
-
-<x:ExcelWorksheet>
-
-<x:Name>Exam Tracker</x:Name>
-
-<x:WorksheetOptions>
-
-<x:DisplayGridlines/>
-
-</x:WorksheetOptions>
-
-</x:ExcelWorksheet>
-
-</x:ExcelWorksheets>
-
-</x:ExcelWorkbook>
-
-</xml>
-
-<![endif]-->
-
-</head>
-
-<body>
-
-<table border="1">
-
-<tr>
-`;
+    const workbook =
+        XLSX.utils.book_new();
 
 
-    allHeaders.forEach(
-        function(header){
+    const worksheet =
+        XLSX.utils.aoa_to_sheet(aoa);
 
-            html +=
-                "<th>" +
-                escapeExcelHTML(header) +
-                "</th>";
 
-        }
+    worksheet["!cols"] = [
+
+        {wch:6},
+        {wch:25},
+        {wch:14},
+        {wch:14},
+        {wch:14},
+        {wch:12},
+        {wch:14},
+        {wch:14},
+        {wch:15},
+        {wch:25},
+        {wch:17},
+        {wch:20},
+        {wch:8},
+        {wch:15},
+        {wch:18},
+        {wch:18},
+        {wch:18},
+        {wch:22},
+        {wch:23},
+        {wch:20},
+        {wch:35}
+
+    ];
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Exam Tracker"
     );
 
 
-    html += "</tr>";
-
-
-    rows.forEach(
-        function(row){
-
-            html += "<tr>";
-
-            row.forEach(
-                function(value){
-
-                    html +=
-                        "<td>" +
-                        escapeExcelHTML(value) +
-                        "</td>";
-
-                }
-            );
-
-            html += "</tr>";
-
-        }
+    XLSX.writeFile(
+        workbook,
+        "Exam_Content_Tracker.xlsx"
     );
 
-
-    html +=
-`
-</table>
-
-</body>
-
-</html>
-`;
-
-
-    const blob =
-        new Blob(
-            ["\ufeff",html],
-            {
-                type:
-                "application/vnd.ms-excel"
-            }
-        );
-
-
-    const url =
-        URL.createObjectURL(blob);
-
-
-    const link =
-        document.createElement("a");
-
-    link.href =
-        url;
-
-    link.download =
-        "Exam_Content_Tracker.xls";
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    link.remove();
-
-    URL.revokeObjectURL(url);
 
     flash(
         "Excel exported successfully"
@@ -1251,39 +1258,15 @@ xmlns="http://www.w3.org/TR/REC-html40">
 }
 
 
-function escapeExcelHTML(value){
-
-    return String(
-        value ?? ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    );
-
-}
-
-
-/* =====================================================
+/* ======================================================
    IMPORT EXCEL
-===================================================== */
+====================================================== */
 
 function importExcel(){
 
     const input =
         document.createElement("input");
+
 
     input.type =
         "file";
@@ -1299,103 +1282,135 @@ function importExcel(){
                 input.files &&
                 input.files[0];
 
+
             if(!file){
+
                 return;
+
             }
 
 
             try{
 
-                let rows = [];
+                if(
+                    typeof XLSX === "undefined"
+                ){
+
+                    throw new Error(
+                        "Excel library could not be loaded. Please check your internet connection."
+                    );
+
+                }
+
+
+                const buffer =
+                    await file.arrayBuffer();
+
+
+                const workbook =
+                    XLSX.read(
+                        buffer,
+                        {
+                            type:"array",
+                            cellDates:true
+                        }
+                    );
 
 
                 if(
-                    file.name
-                    .toLowerCase()
-                    .endsWith(".xlsx")
+                    !workbook.SheetNames.length
                 ){
 
-                    rows =
-                        await readXLSX(
-                            file
-                        );
+                    throw new Error(
+                        "No worksheet found."
+                    );
 
                 }
 
-                else if(
-                    file.name
-                    .toLowerCase()
-                    .endsWith(".xls")
+
+                const sheetName =
+                    workbook.SheetNames[0];
+
+
+                const worksheet =
+                    workbook.Sheets[
+                        sheetName
+                    ];
+
+
+                const rows =
+                    XLSX.utils.sheet_to_json(
+                        worksheet,
+                        {
+                            header:1,
+                            defval:"",
+                            raw:true
+                        }
+                    );
+
+
+                if(
+                    rows.length < 2
                 ){
 
-                    rows =
-                        await readXLS(
-                            file
-                        );
-
-                }
-
-                else{
-
-                    alert(
-                        "Please select an Excel .xlsx or .xls file."
+                    throw new Error(
+                        "No data found in Excel file."
                     );
-
-                    return;
-
-                }
-
-
-                if(!rows.length){
-
-                    alert(
-                        "No data found in the Excel file."
-                    );
-
-                    return;
 
                 }
 
 
                 const imported =
-                    convertExcelRows(
-                        rows
-                    );
-
-
-                if(!imported.length){
-
-                    alert(
-                        "No valid project rows found. Please ensure the Excel file has a Project column."
-                    );
-
-                    return;
-
-                }
+                    convertExcelRows(rows);
 
 
                 if(
-                    !confirm(
-                        "Import " +
-                        imported.length +
-                        " project(s) and replace current data?"
-                    )
+                    !imported.length
                 ){
-                    return;
+
+                    throw new Error(
+                        "No valid project records found. Please make sure your Excel contains a Project column."
+                    );
+
                 }
 
 
-                exams =
-                    imported;
+                const replace =
+                    confirm(
+
+                        "Found " +
+                        imported.length +
+                        " project(s).\n\n" +
+
+                        "OK = REPLACE current data\n" +
+
+                        "Cancel = APPEND imported data"
+
+                    );
+
+
+                if(replace){
+
+                    exams =
+                        imported;
+
+                }
+                else{
+
+                    exams =
+                        exams.concat(
+                            imported
+                        );
+
+                }
 
 
                 saveData();
 
-                renderTable();
-
 
                 flash(
-                    "Excel imported successfully"
+                    imported.length +
+                    " project(s) imported successfully"
                 );
 
             }
@@ -1404,7 +1419,7 @@ function importExcel(){
                 console.error(error);
 
                 alert(
-                    "Excel import failed:\n\n" +
+                    "Excel import failed.\n\n" +
                     error.message
                 );
 
@@ -1418,834 +1433,137 @@ function importExcel(){
 }
 
 
-/* =====================================================
-   XLSX READER
-===================================================== */
-
-async function readXLSX(file){
-
-    if(
-        typeof DecompressionStream ===
-        "undefined"
-    ){
-
-        throw new Error(
-            "Your browser does not support native Excel reading. Please use the latest Google Chrome or Microsoft Edge."
-        );
-
-    }
-
-
-    const buffer =
-        await file.arrayBuffer();
-
-    const data =
-        new Uint8Array(buffer);
-
-
-    const zip =
-        parseZIP(data);
-
-
-    const workbookXML =
-        await readZIPText(
-            zip,
-            "xl/workbook.xml"
-        );
-
-
-    const relationsXML =
-        await readZIPText(
-            zip,
-            "xl/_rels/workbook.xml.rels"
-        );
-
-
-    const parser =
-        new DOMParser();
-
-
-    const workbookDoc =
-        parser.parseFromString(
-            workbookXML,
-            "application/xml"
-        );
-
-
-    const relationsDoc =
-        parser.parseFromString(
-            relationsXML,
-            "application/xml"
-        );
-
-
-    const sheet =
-        workbookDoc
-        .getElementsByTagNameNS(
-            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-            "sheet"
-        )[0];
-
-
-    if(!sheet){
-
-        throw new Error(
-            "No worksheet found."
-        );
-
-    }
-
-
-    const relationshipID =
-        sheet.getAttribute(
-            "r:id"
-        );
-
-
-    const relationship =
-        Array.from(
-            relationsDoc
-            .getElementsByTagName(
-                "Relationship"
-            )
-        )
-        .find(
-            r =>
-                r.getAttribute("Id")
-                ===
-                relationshipID
-        );
-
-
-    if(!relationship){
-
-        throw new Error(
-            "Worksheet relationship not found."
-        );
-
-    }
-
-
-    let target =
-        relationship.getAttribute(
-            "Target"
-        );
-
-
-    target =
-        target.replace(
-            /^\/+/,
-            ""
-        );
-
-
-    if(
-        !target.startsWith("xl/")
-    ){
-
-        target =
-            "xl/" +
-            target.replace(
-                /^\.?\//,
-                ""
-            );
-
-    }
-
-
-    const sheetXML =
-        await readZIPText(
-            zip,
-            target
-        );
-
-
-    let sharedStrings = [];
-
-
-    if(
-        zip["xl/sharedStrings.xml"]
-    ){
-
-        const sharedXML =
-            await readZIPText(
-                zip,
-                "xl/sharedStrings.xml"
-            );
-
-
-        const sharedDoc =
-            parser.parseFromString(
-                sharedXML,
-                "application/xml"
-            );
-
-
-        sharedStrings =
-            Array.from(
-                sharedDoc
-                .getElementsByTagNameNS(
-                    "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                    "si"
-                )
-            )
-            .map(
-                function(si){
-
-                    return Array.from(
-                        si.getElementsByTagNameNS(
-                            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                            "t"
-                        )
-                    )
-                    .map(
-                        t =>
-                            t.textContent || ""
-                    )
-                    .join("");
-
-                }
-            );
-
-    }
-
-
-    const sheetDoc =
-        parser.parseFromString(
-            sheetXML,
-            "application/xml"
-        );
-
-
-    const rowNodes =
-        Array.from(
-            sheetDoc
-            .getElementsByTagNameNS(
-                "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                "row"
-            )
-        );
-
-
-    const matrix = [];
-
-
-    rowNodes.forEach(
-        function(rowNode){
-
-            const cells =
-                Array.from(
-                    rowNode
-                    .getElementsByTagNameNS(
-                        "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                        "c"
-                    )
-                );
-
-
-            const row = {};
-
-
-            cells.forEach(
-                function(cell){
-
-                    const reference =
-                        cell.getAttribute("r");
-
-                    const column =
-                        reference
-                        .replace(
-                            /[0-9]/g,
-                            ""
-                        );
-
-
-                    const type =
-                        cell.getAttribute("t")
-                        || "";
-
-
-                    const valueNode =
-                        cell
-                        .getElementsByTagNameNS(
-                            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                            "v"
-                        )[0];
-
-
-                    let value = "";
-
-
-                    if(
-                        type === "inlineStr"
-                    ){
-
-                        const inline =
-                            cell
-                            .getElementsByTagNameNS(
-                                "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                                "is"
-                            )[0];
-
-
-                        if(inline){
-
-                            value =
-                                Array.from(
-                                    inline
-                                    .getElementsByTagNameNS(
-                                        "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-                                        "t"
-                                    )
-                                )
-                                .map(
-                                    t =>
-                                        t.textContent || ""
-                                )
-                                .join("");
-
-                        }
-
-                    }
-
-                    else if(valueNode){
-
-                        value =
-                            valueNode
-                            .textContent || "";
-
-
-                        if(
-                            type === "s"
-                        ){
-
-                            value =
-                                sharedStrings[
-                                    Number(value)
-                                ] || "";
-
-                        }
-
-
-                        if(
-                            type === "b"
-                        ){
-
-                            value =
-                                value === "1"
-                                ?
-                                "TRUE"
-                                :
-                                "FALSE";
-
-                        }
-
-                    }
-
-
-                    row[column] =
-                        value;
-
-                }
-            );
-
-
-            matrix.push(row);
-
-        }
-    );
-
-
-    if(!matrix.length){
-        return [];
-    }
-
-
-    let maxColumn = 0;
-
-
-    matrix.forEach(
-        function(row){
-
-            Object.keys(row)
-            .forEach(
-                function(column){
-
-                    maxColumn =
-                        Math.max(
-                            maxColumn,
-                            columnNumber(
-                                column
-                            )
-                        );
-
-                }
-            );
-
-        }
-    );
-
-
-    return matrix.map(
-        function(row){
-
-            const array = [];
-
-            for(
-                let i=1;
-                i<=maxColumn;
-                i++
-            ){
-
-                array.push(
-                    row[
-                        columnName(i)
-                    ] ?? ""
-                );
-
-            }
-
-            return array;
-
-        }
-    );
-
-}
-
-
-/* =====================================================
-   ZIP PARSER
-===================================================== */
-
-function parseZIP(data){
-
-    const entries = {};
-
-    const view =
-        new DataView(
-            data.buffer
-        );
-
-
-    let offset = 0;
-
-
-    while(
-        offset + 4 <=
-        data.length
-    ){
-
-        const signature =
-            view.getUint32(
-                offset,
-                true
-            );
-
-
-        if(
-            signature ===
-            0x04034b50
-        ){
-
-            const method =
-                view.getUint16(
-                    offset + 8,
-                    true
-                );
-
-
-            const compressedSize =
-                view.getUint32(
-                    offset + 18,
-                    true
-                );
-
-
-            const fileNameLength =
-                view.getUint16(
-                    offset + 26,
-                    true
-                );
-
-
-            const extraLength =
-                view.getUint16(
-                    offset + 28,
-                    true
-                );
-
-
-            const name =
-                new TextDecoder()
-                .decode(
-                    data.slice(
-                        offset + 30,
-                        offset +
-                        30 +
-                        fileNameLength
-                    )
-                );
-
-
-            const start =
-                offset +
-                30 +
-                fileNameLength +
-                extraLength;
-
-
-            const content =
-                data.slice(
-                    start,
-                    start +
-                    compressedSize
-                );
-
-
-            entries[name] = {
-                method:method,
-                content:content
-            };
-
-
-            offset =
-                start +
-                compressedSize;
-
-        }
-
-        else if(
-            signature ===
-            0x02014b50
-        ){
-
-            break;
-
-        }
-
-        else if(
-            signature ===
-            0x06054b50
-        ){
-
-            break;
-
-        }
-
-        else{
-
-            offset++;
-
-        }
-
-    }
-
-
-    return entries;
-
-}
-
-
-/* =====================================================
-   READ ZIP TEXT
-===================================================== */
-
-async function readZIPText(
-    entries,
-    name
-){
-
-    const entry =
-        entries[name];
-
-
-    if(!entry){
-
-        throw new Error(
-            "Excel component missing: " +
-            name
-        );
-
-    }
-
-
-    let bytes;
-
-
-    if(
-        entry.method === 0
-    ){
-
-        bytes =
-            entry.content;
-
-    }
-
-    else if(
-        entry.method === 8
-    ){
-
-        const stream =
-            new Blob(
-                [entry.content]
-            )
-            .stream()
-            .pipeThrough(
-                new DecompressionStream(
-                    "deflate-raw"
-                )
-            );
-
-
-        bytes =
-            new Uint8Array(
-                await new Response(
-                    stream
-                ).arrayBuffer()
-            );
-
-    }
-
-    else{
-
-        throw new Error(
-            "Unsupported Excel compression method."
-        );
-
-    }
-
-
-    return new TextDecoder(
-        "utf-8"
-    ).decode(
-        bytes
-    );
-
-}
-
-
-/* =====================================================
-   COLUMN HELPERS
-===================================================== */
-
-function columnNumber(column){
-
-    let number = 0;
-
-
-    for(
-        const character of column
-    ){
-
-        number =
-            number * 26 +
-            character.charCodeAt(0) -
-            64;
-
-    }
-
-
-    return number;
-
-}
-
-
-function columnName(number){
-
-    let name = "";
-
-
-    while(
-        number > 0
-    ){
-
-        const remainder =
-            (number - 1) %
-            26;
-
-
-        name =
-            String.fromCharCode(
-                65 + remainder
-            ) +
-            name;
-
-
-        number =
-            Math.floor(
-                (number - 1) / 26
-            );
-
-    }
-
-
-    return name;
-
-}
-
-
-/* =====================================================
-   OLD XLS / HTML EXCEL
-===================================================== */
-
-async function readXLS(file){
-
-    const text =
-        await file.text();
-
-
-    const parser =
-        new DOMParser();
-
-
-    const document =
-        parser.parseFromString(
-            text,
-            "text/html"
-        );
-
-
-    const table =
-        document.querySelector(
-            "table"
-        );
-
-
-    if(!table){
-
-        throw new Error(
-            "The .xls file is not an HTML-based Excel file."
-        );
-
-    }
-
-
-    return Array.from(
-        table.rows
-    )
-    .map(
-        row =>
-            Array.from(
-                row.cells
-            )
-            .map(
-                cell =>
-                    cell.textContent.trim()
-            )
-    );
-
-}
-
-
-/* =====================================================
-   MAP EXCEL DATA
-===================================================== */
+/* ======================================================
+   EXCEL HEADER MAPPING
+====================================================== */
 
 function convertExcelRows(rows){
 
-    if(!rows.length){
-        return [];
+    function normalize(value){
+
+        return String(
+            value ?? ""
+        )
+        .trim()
+        .toLowerCase()
+        .replace(
+            /[^a-z0-9]+/g,
+            ""
+        );
+
     }
-
-
-    const normalize =
-        function(value){
-
-            return String(
-                value ?? ""
-            )
-            .trim()
-            .toLowerCase()
-            .replace(
-                /[^a-z0-9]+/g,
-                ""
-            );
-
-        };
 
 
     const aliases = {
 
         project:[
-            "project"
+            "project",
+            "projectname",
+            "examname",
+            "examination",
+            "exam"
         ],
 
         examDate:[
-            "examdate"
+            "examdate",
+            "examinationdate",
+            "dateofexam",
+            "examdatetime"
         ],
 
         applications:[
             "applications",
             "application",
-            "noofapplications"
+            "noofapplications",
+            "totalapplications",
+            "totalapplication"
         ],
 
         scheduled:[
             "scheduled",
-            "scheduledcandidates"
+            "scheduledcandidates",
+            "noscheduled",
+            "totalscheduled"
         ],
 
         present:[
             "present",
-            "presentcandidates"
+            "presentcandidates",
+            "nopresent",
+            "totalpresent"
         ],
 
         states:[
             "noofstate",
             "noofstates",
             "states",
-            "state"
+            "state",
+            "numberofstate"
         ],
 
         cities:[
             "noofcity",
             "noofcities",
             "cities",
-            "city"
+            "city",
+            "numberofcity"
         ],
 
         centers:[
             "noofcenter",
             "noofcenters",
             "centers",
-            "center"
+            "center",
+            "numberofcenter",
+            "numberofcenters"
         ],
 
         ird:[
             "irdsyllabusreceived",
             "ird",
-            "syllabusreceived"
+            "syllabusreceived",
+            "irdsyllabus"
         ],
 
         cityLive:[
             "citylivedate",
-            "citylive"
+            "citylive",
+            "citylaunchdate"
         ],
 
         admitCard:[
             "admitcardlivedate",
             "admitcardlive",
-            "admitcard"
+            "admitcard",
+            "admitcarddate"
         ],
 
         qp:[
             "qp",
             "noofqp",
-            "numberofqp"
+            "numberofqp",
+            "numberofquestionpaper",
+            "questionpaper"
         ],
 
         status:[
-            "status"
+            "status",
+            "projectstatus",
+            "examstatus"
         ],
 
         request:[
             "contentrequest",
-            "request"
+            "request",
+            "contentrequestdate",
+            "requestdate"
         ],
 
         delivery:[
             "contentdelivery",
-            "delivery"
+            "delivery",
+            "contentdeliverydate",
+            "deliverydate"
         ],
 
         content:[
@@ -2257,24 +1575,30 @@ function convertExcelRows(rows){
             "noofobjectionlive",
             "objectionlive",
             "objectionopendate",
-            "objectionopen"
+            "objectionopen",
+            "objectionlivedate"
         ],
 
         objectionClose:[
             "noofobjectionclose",
             "objectionclose",
-            "objectionclosedate"
+            "objectionclosedate",
+            "objectionclosed"
         ],
 
         result:[
             "resultsubmitdate",
             "resultsubmit",
-            "resultdate"
+            "resultdate",
+            "resultsubmissiondate"
         ],
 
         remark:[
             "remark",
-            "remarks"
+            "remarks",
+            "comments",
+            "comment",
+            "notes"
         ]
 
     };
@@ -2283,9 +1607,7 @@ function convertExcelRows(rows){
     const aliasMap = {};
 
 
-    Object.keys(
-        aliases
-    )
+    Object.keys(aliases)
     .forEach(
         function(field){
 
@@ -2305,106 +1627,171 @@ function convertExcelRows(rows){
     );
 
 
-    const headerRow =
-        rows[0];
+    let headerIndex = -1;
+
+
+    for(
+        let i=0;
+        i<Math.min(
+            rows.length,
+            10
+        );
+        i++
+    ){
+
+        const currentRow =
+            rows[i] || [];
+
+
+        const found =
+            currentRow
+            .map(normalize)
+            .some(
+                function(header){
+
+                    return (
+                        aliasMap[header] ===
+                        "project"
+                    );
+
+                }
+            );
+
+
+        if(found){
+
+            headerIndex =
+                i;
+
+            break;
+
+        }
+
+    }
+
+
+    if(headerIndex === -1){
+
+        throw new Error(
+            "Project column was not found."
+        );
+
+    }
 
 
     const headerMap =
-        headerRow.map(
-            normalize
-        );
+        (rows[headerIndex] || [])
+        .map(normalize);
 
 
     const result = [];
 
 
     for(
-        let rowIndex=1;
-        rowIndex<rows.length;
-        rowIndex++
+        let r=headerIndex+1;
+        r<rows.length;
+        r++
     ){
 
         const row =
-            rows[rowIndex];
+            rows[r] || [];
 
 
         const item = {};
 
 
         fields.forEach(
-            field =>
-                item[field] = ""
+            function(field){
+
+                item[field] = "";
+
+            }
         );
 
 
         for(
-            let column=0;
-            column<headerMap.length;
-            column++
+            let c=0;
+            c<headerMap.length;
+            c++
         ){
 
             const field =
                 aliasMap[
-                    headerMap[column]
+                    headerMap[c]
                 ];
 
 
             if(!field){
+
                 continue;
+
             }
 
 
             let value =
-                row[column] ?? "";
+                row[c] ?? "";
 
+
+            /* Number */
 
             if(
-                numericFields.includes(
-                    field
-                )
+                numericFields.includes(field)
             ){
 
-                const clean =
-                    String(value)
-                    .replace(
-                        /,/g,
-                        ""
-                    )
-                    .trim();
-
-
-                if(
-                    clean === ""
-                ){
+                if(value === ""){
 
                     value = "";
 
                 }
+                else{
 
-                else if(
-                    Number.isFinite(
-                        Number(clean)
-                    )
-                ){
+                    const number =
+                        Number(
+                            String(value)
+                            .replace(/,/g,"")
+                            .trim()
+                        );
 
-                    value =
-                        Number(clean);
+
+                    if(
+                        Number.isFinite(number)
+                    ){
+
+                        value =
+                            number;
+
+                    }
 
                 }
 
             }
 
 
+            /* Date */
+
             if(
-                dateFields.includes(
-                    field
-                )
+                dateFields.includes(field)
             ){
 
                 value =
-                    convertDate(
+                    convertExcelDate(
                         value
                     );
+
+            }
+
+
+            /* Text */
+
+            if(
+                !numericFields.includes(field) &&
+                !dateFields.includes(field)
+            ){
+
+                value =
+                    String(
+                        value ?? ""
+                    ).trim();
 
             }
 
@@ -2415,19 +1802,29 @@ function convertExcelRows(rows){
         }
 
 
+        if(!item.status){
+
+            item.status =
+                "Scheduled";
+
+        }
+
+
+        if(!item.content){
+
+            item.content =
+                "Pending";
+
+        }
+
+
         if(
             String(
                 item.project || ""
             ).trim() !== ""
-            ||
-            String(
-                item.examDate || ""
-            ).trim() !== ""
         ){
 
-            result.push(
-                item
-            );
+            result.push(item);
 
         }
 
@@ -2439,15 +1836,16 @@ function convertExcelRows(rows){
 }
 
 
-/* =====================================================
+/* ======================================================
    DATE CONVERSION
-===================================================== */
+====================================================== */
 
-function convertDate(value){
+function convertExcelDate(value){
 
     if(
         value === "" ||
-        value == null
+        value === null ||
+        value === undefined
     ){
 
         return "";
@@ -2455,14 +1853,24 @@ function convertDate(value){
     }
 
 
-    const text =
-        String(value)
-        .trim();
+    if(
+        value instanceof Date &&
+        !isNaN(value.getTime())
+    ){
 
+        return formatDate(value);
+
+    }
+
+
+    const text =
+        String(value).trim();
+
+
+    /* YYYY-MM-DD */
 
     if(
-        /^\d{4}-\d{2}-\d{2}$/
-        .test(text)
+        /^\d{4}-\d{2}-\d{2}$/.test(text)
     ){
 
         return text;
@@ -2470,13 +1878,10 @@ function convertDate(value){
     }
 
 
-    /*
-       Excel serial date
-    */
+    /* Excel Serial Date */
 
     if(
-        /^\d+(\.\d+)?$/
-        .test(text)
+        /^\d+(\.\d+)?$/.test(text)
     ){
 
         const serial =
@@ -2489,38 +1894,40 @@ function convertDate(value){
         ){
 
             const date =
-                new Date(
-                    Date.UTC(
-                        1899,
-                        11,
-                        30
-                    )
+                XLSX.SSF.parse_date_code(
+                    serial
                 );
 
 
-            date.setUTCDate(
-                date.getUTCDate() +
-                Math.floor(serial)
-            );
+            if(date){
 
+                return (
 
-            return date
-            .toISOString()
-            .slice(
-                0,
-                10
-            );
+                    String(date.y)
+                    .padStart(4,"0") +
+
+                    "-" +
+
+                    String(date.m)
+                    .padStart(2,"0") +
+
+                    "-" +
+
+                    String(date.d)
+                    .padStart(2,"0")
+
+                );
+
+            }
 
         }
 
     }
 
 
-    /*
-       DD/MM/YYYY
-    */
+    /* DD/MM/YYYY or DD-MM-YYYY */
 
-    const match =
+    let match =
         text.match(
             /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
         );
@@ -2529,50 +1936,244 @@ function convertDate(value){
     if(match){
 
         return (
+
             match[3] +
+
             "-" +
+
             match[2].padStart(
                 2,
                 "0"
             ) +
+
             "-" +
+
             match[1].padStart(
                 2,
                 "0"
             )
+
         );
 
     }
 
+
+    /* Normal date */
 
     const date =
         new Date(text);
 
 
     if(
-        !Number.isNaN(
-            date.getTime()
-        )
+        !isNaN(date.getTime())
     ){
 
-        return date
-        .toISOString()
-        .slice(
-            0,
-            10
-        );
+        return formatDate(date);
 
     }
 
 
-    return text;
+    return "";
 
 }
 
 
-/* =====================================================
+/* ======================================================
+   FORMAT DATE
+====================================================== */
+
+function formatDate(date){
+
+    return (
+
+        date.getFullYear() +
+
+        "-" +
+
+        String(
+            date.getMonth()+1
+        ).padStart(2,"0") +
+
+        "-" +
+
+        String(
+            date.getDate()
+        ).padStart(2,"0")
+
+    );
+
+}
+
+
+/* ======================================================
+   DOWNLOAD EXCEL TEMPLATE
+====================================================== */
+
+function downloadTemplate(){
+
+    if(
+        typeof XLSX === "undefined"
+    ){
+
+        alert(
+            "Excel library is not loaded."
+        );
+
+        return;
+
+    }
+
+
+    const workbook =
+        XLSX.utils.book_new();
+
+
+    const sampleRow = [
+
+        "Example Project",
+        "08/09/2026",
+        742,
+        742,
+        700,
+        5,
+        8,
+        10,
+        "Yes",
+        "01/08/2026",
+        "03/09/2026",
+        4,
+        "Scheduled",
+        "18/07/2026",
+        "06/08/2026",
+        "WIP",
+        0,
+        0,
+        "",
+        "Example remark"
+
+    ];
+
+
+    const worksheet =
+        XLSX.utils.aoa_to_sheet([
+
+            headers,
+
+            sampleRow
+
+        ]);
+
+
+    worksheet["!cols"] = [
+
+        {wch:25},
+        {wch:14},
+        {wch:14},
+        {wch:14},
+        {wch:12},
+        {wch:14},
+        {wch:14},
+        {wch:14},
+        {wch:25},
+        {wch:17},
+        {wch:20},
+        {wch:8},
+        {wch:15},
+        {wch:18},
+        {wch:18},
+        {wch:18},
+        {wch:22},
+        {wch:23},
+        {wch:20},
+        {wch:35}
+
+    ];
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Exam Tracker"
+    );
+
+
+    /* Instructions */
+
+    const instructions = [
+
+        [
+            "Exam Content Tracker - Import Template"
+        ],
+
+        [
+            "Use the first sheet 'Exam Tracker' for project data."
+        ],
+
+        [
+            "Keep the header row unchanged for automatic mapping."
+        ],
+
+        [
+            "You can add unlimited project rows."
+        ],
+
+        [
+            "Dates can be DD/MM/YYYY, DD-MM-YYYY or YYYY-MM-DD."
+        ],
+
+        [
+            "Excel date cells are also supported."
+        ],
+
+        [
+            "Status: Scheduled, Ongoing, Completed, Cancelled, On Hold."
+        ],
+
+        [
+            "Content Status: Ready, WIP, Pending, Completed."
+        ],
+
+        [
+            "Project column must contain a value."
+        ]
+
+    ];
+
+
+    const instructionSheet =
+        XLSX.utils.aoa_to_sheet(
+            instructions
+        );
+
+
+    instructionSheet["!cols"] = [
+        {wch:100}
+    ];
+
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        instructionSheet,
+        "Instructions"
+    );
+
+
+    XLSX.writeFile(
+        workbook,
+        "Exam_Content_Tracker_Import_Template.xlsx"
+    );
+
+
+    flash(
+        "Excel template downloaded"
+    );
+
+}
+
+
+/* ======================================================
    JSON BACKUP
-===================================================== */
+====================================================== */
 
 function exportJSON(){
 
@@ -2586,43 +2187,22 @@ function exportJSON(){
                 )
             ],
             {
-                type:
-                "application/json"
+                type:"application/json"
             }
         );
 
 
-    const url =
-        URL.createObjectURL(blob);
-
-
-    const link =
-        document.createElement("a");
-
-
-    link.href =
-        url;
-
-    link.download =
-        "Exam_Content_Tracker_Backup.json";
-
-
-    document.body.appendChild(
-        link
+    downloadBlob(
+        blob,
+        "Exam_Content_Tracker_Backup.json"
     );
-
-    link.click();
-
-    link.remove();
-
-    URL.revokeObjectURL(url);
 
 }
 
 
-/* =====================================================
+/* ======================================================
    JSON RESTORE
-===================================================== */
+====================================================== */
 
 function importJSON(){
 
@@ -2632,7 +2212,6 @@ function importJSON(){
 
     input.type =
         "file";
-
 
     input.accept =
         ".json";
@@ -2647,7 +2226,9 @@ function importJSON(){
 
 
             if(!file){
+
                 return;
+
             }
 
 
@@ -2681,8 +2262,6 @@ function importJSON(){
 
                         saveData();
 
-                        renderTable();
-
 
                         flash(
                             "JSON backup restored"
@@ -2710,36 +2289,70 @@ function importJSON(){
 }
 
 
-/* =====================================================
-   RESET
-===================================================== */
+/* ======================================================
+   DOWNLOAD BLOB
+====================================================== */
 
-function resetData(){
+function downloadBlob(
+    blob,
+    name
+){
 
-    if(
-        !confirm(
-            "Reset dashboard to default data?"
-        )
-    ){
-
-        return;
-
-    }
+    const url =
+        URL.createObjectURL(blob);
 
 
-    localStorage.removeItem(
-        STORAGE_KEY
-    );
+    const a =
+        document.createElement("a");
 
 
-    location.reload();
+    a.href =
+        url;
+
+    a.download =
+        name;
+
+
+    document.body.appendChild(a);
+
+
+    a.click();
+
+
+    a.remove();
+
+
+    URL.revokeObjectURL(url);
 
 }
 
 
-/* =====================================================
-   FLASH
-===================================================== */
+/* ======================================================
+   RESET
+====================================================== */
+
+function resetData(){
+
+    if(
+        confirm(
+            "Reset dashboard to default data?"
+        )
+    ){
+
+        localStorage.removeItem(
+            STORAGE_KEY
+        );
+
+        location.reload();
+
+    }
+
+}
+
+
+/* ======================================================
+   FLASH MESSAGE
+====================================================== */
 
 function flash(message){
 
@@ -2757,15 +2370,21 @@ function flash(message){
         "block";
 
 
-    setTimeout(
-        function(){
-
-            element.style.display =
-                "none";
-
-        },
-        2200
+    clearTimeout(
+        window.flashTimer
     );
+
+
+    window.flashTimer =
+        setTimeout(
+            function(){
+
+                element.style.display =
+                    "none";
+
+            },
+            2200
+        );
 
 }
 
