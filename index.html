@@ -200,6 +200,33 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 .excel-note{text-align:center;font-size:12px;color:#777;padding:8px}
 @media(max-width:900px){.summary{grid-template-columns:repeat(2,1fr)}.search{margin-left:0;width:100%}}
 </style>
+
+<style>
+.analysis-overlay{position:fixed;inset:0;background:rgba(0,0,0,.58);z-index:99999;display:none;padding:22px;overflow:auto}
+.analysis-modal{max-width:1450px;margin:auto;background:#fff;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.3);overflow:hidden}
+.analysis-head{background:#111827;color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.analysis-head h2{margin:0;font-size:21px}
+.analysis-close{border:0;background:#fff;color:#111827;border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:700}
+.analysis-body{padding:20px}
+.analysis-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.analysis-filters select,.analysis-filters button{padding:9px 12px;border:1px solid #d1d5db;border-radius:8px;background:#fff}
+.analysis-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.analysis-card{border:1px solid #e5e7eb;border-radius:12px;padding:15px;background:#f9fafb}
+.analysis-card .label{font-size:12px;color:#6b7280;margin-bottom:6px}
+.analysis-card .value{font-size:24px;font-weight:800;color:#111827}
+.analysis-card .sub{font-size:11px;color:#6b7280;margin-top:4px}
+.analysis-section{margin-top:20px;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
+.analysis-section h3{margin:0;padding:12px 15px;background:#f3f4f6;font-size:15px}
+.analysis-table{width:100%;border-collapse:collapse}
+.analysis-table th,.analysis-table td{padding:9px 11px;border-bottom:1px solid #e5e7eb;text-align:left;font-size:12px}
+.analysis-table th{background:#fafafa}
+.analysis-progress{height:8px;background:#e5e7eb;border-radius:10px;overflow:hidden}
+.analysis-progress span{display:block;height:100%;background:#111827}
+.analysis-alert{padding:10px 12px;border-left:4px solid #111827;background:#f9fafb;margin-bottom:8px;border-radius:6px}
+@media(max-width:900px){.analysis-grid{grid-template-columns:repeat(2,minmax(140px,1fr))}}
+@media(max-width:600px){.analysis-grid{grid-template-columns:1fr}.analysis-overlay{padding:8px}}
+</style>
+
 </head>
 <body>
 <div class="container">
@@ -209,6 +236,8 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 </div>
 
 <div class="toolbar">
+<button class="btn primary" id="analysisBtn" onclick="openAnalysis()">📊 Overall Analysis</button>
+
 <button class="btn-add" onclick="addProject()">+ Add Project</button>
 <button class="btn-save" onclick="saveData()">Save</button>
 <button class="btn-excel" onclick="exportExcel()">Export Excel</button>
@@ -952,5 +981,193 @@ const el=document.getElementById("flash");el.textContent=message;el.style.displa
 clearTimeout(window.flashTimer);window.flashTimer=setTimeout(()=>el.style.display="none",2200);
 }
 </script>
+
+<div id="analysisOverlay" class="analysis-overlay" onclick="if(event.target===this)closeAnalysis()">
+  <div class="analysis-modal">
+    <div class="analysis-head">
+      <h2>📊 Overall Exam Content Analysis</h2>
+      <button class="analysis-close" onclick="closeAnalysis()">✕ Close</button>
+    </div>
+    <div class="analysis-body">
+      <div class="analysis-filters">
+        <select id="analysisStatusFilter" onchange="renderAnalysis()">
+          <option value="ALL">All Status</option>
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="On Hold">On Hold</option>
+        </select>
+        <select id="analysisContentFilter" onchange="renderAnalysis()">
+          <option value="ALL">All Content Status</option>
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="Pending">Pending</option>
+        </select>
+        <button onclick="renderAnalysis()">↻ Refresh Analysis</button>
+      </div>
+      <div id="analysisContent"></div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+function analysisDate(v){
+  if(!v) return null;
+  const s=String(v).trim().split(",");
+  const ds=s.map(x=>x.trim()).filter(Boolean).map(x=>{
+    const p=x.split("-");
+    if(p.length!==3) return null;
+    const d=new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));
+    return isNaN(d.getTime())?null:d;
+  }).filter(Boolean);
+  return ds.length ? ds.sort((a,b)=>a-b)[0] : null;
+}
+function pct(a,b){ return b ? Math.round((a/b)*100) : 0; }
+function norm(v){return String(v??"").trim().toLowerCase();}
+function analysisValue(e,f){return e && e[f]!==undefined && e[f]!==null ? e[f] : "";}
+function openAnalysis(){
+  document.getElementById("analysisOverlay").style.display="block";
+  renderAnalysis();
+}
+function closeAnalysis(){document.getElementById("analysisOverlay").style.display="none";}
+
+function renderAnalysis(){
+  const box=document.getElementById("analysisContent");
+  if(!box) return;
+  const statusF=document.getElementById("analysisStatusFilter").value;
+  const contentF=document.getElementById("analysisContentFilter").value;
+  const all=Array.isArray(exams)?exams:[];
+  const rows=all.filter(e=>{
+    const st=analysisValue(e,"status");
+    const cs=analysisValue(e,"content");
+    return (statusF==="ALL" || norm(st)===norm(statusF)) &&
+           (contentF==="ALL" || norm(cs)===norm(contentF));
+  });
+
+  const total=rows.length;
+  const today=new Date(); today.setHours(0,0,0,0);
+  let upcoming=0, overdue=0, noExamDate=0, applications=0, scheduled=0, present=0;
+  let stateTotal=0, cityTotal=0, centerTotal=0, ird=0, qp=0, req=0, delivery=0, result=0;
+  let objectionLive=0, objectionClose=0;
+  let cityLiveDue=0, admitDue=0;
+
+  rows.forEach(e=>{
+    const n=(f)=>Number(e[f])||0;
+    applications+=n("applications"); scheduled+=n("scheduled"); present+=n("present");
+    stateTotal+=n("states"); cityTotal+=n("cities"); centerTotal+=n("centers");
+    objectionLive+=n("objectionLive"); objectionClose+=n("objectionClose");
+
+    if(String(e.ird||"").trim()) ird++;
+    if(String(e.qp||"").trim()) qp++;
+    if(String(e.request||"").trim()) req++;
+    if(String(e.delivery||"").trim()) delivery++;
+    if(String(e.result||"").trim()) result++;
+
+    const d=analysisDate(e.examDate);
+    if(!d){noExamDate++; return;}
+    if(d>=today && d<=new Date(today.getTime()+30*86400000)) upcoming++;
+    if(d<today) overdue++;
+    const city=new Date(d); city.setDate(city.getDate()-15);
+    const admit=new Date(d); admit.setDate(admit.getDate()-3);
+    if(city<=today && !String(e.cityLive||"").trim()) cityLiveDue++;
+    if(admit<=today && !String(e.admitCard||"").trim()) admitDue++;
+  });
+
+  const scheduledPct=pct(scheduled,applications);
+  const presentPct=pct(present,scheduled);
+  const irdPct=pct(ird,total), qpPct=pct(qp,total), reqPct=pct(req,total), deliveryPct=pct(delivery,total), resultPct=pct(result,total);
+
+  const statusCounts={};
+  const contentCounts={};
+  rows.forEach(e=>{
+    const s=String(e.status||"Not Started").trim()||"Not Started";
+    const c=String(e.content||"Not Started").trim()||"Not Started";
+    statusCounts[s]=(statusCounts[s]||0)+1;
+    contentCounts[c]=(contentCounts[c]||0)+1;
+  });
+
+  const card=(label,value,sub="")=>`<div class="analysis-card"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`;
+  const progressRow=(label,val)=>`<tr><td>${label}</td><td style="width:45%"><div class="analysis-progress"><span style="width:${val}%"></span></div></td><td><b>${val}%</b></td></tr>`;
+
+  const alerts=[];
+  if(noExamDate) alerts.push(`⚠️ <b>${noExamDate}</b> project(s) have no Exam Date.`);
+  if(cityLiveDue) alerts.push(`⚠️ <b>${cityLiveDue}</b> project(s) have City Live Date due/pending.`);
+  if(admitDue) alerts.push(`⚠️ <b>${admitDue}</b> project(s) have Admit Card Date due/pending.`);
+  if(overdue) alerts.push(`📅 <b>${overdue}</b> project(s) have an Exam Date before today.`);
+  if(!alerts.length) alerts.push("✅ No major date/data exceptions detected in the current filter.");
+
+  const countTable=(obj)=>Object.keys(obj).length
+    ? Object.entries(obj).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td><b>${v}</b></td><td>${pct(v,total)}%</td></tr>`).join("")
+    : `<tr><td colspan="3">No data available</td></tr>`;
+
+  box.innerHTML=`
+    <div class="analysis-grid">
+      ${card("Total Projects",total,"Projects in current filter")}
+      ${card("Upcoming ≤ 30 Days",upcoming,"Based on earliest Exam Date")}
+      ${card("Applications",applications,"Total applications")}
+      ${card("Scheduled",scheduled,scheduledPct+"% of applications")}
+      ${card("Present",present,presentPct+"% of scheduled")}
+      ${card("States",stateTotal,"Total recorded")}
+      ${card("Cities",cityTotal,"Total recorded")}
+      ${card("Centers",centerTotal,"Total recorded")}
+      ${card("IRD / Syllabus",ird,irdPct+"% projects")}
+      ${card("QP",qp,qpPct+"% projects")}
+    </div>
+
+    <div class="analysis-section">
+      <h3>📈 Content / Project Readiness</h3>
+      <table class="analysis-table">
+        <thead><tr><th>Metric</th><th>Progress</th><th>%</th></tr></thead>
+        <tbody>
+          ${progressRow("IRD / Syllabus Received",irdPct)}
+          ${progressRow("QP Available",qpPct)}
+          ${progressRow("Content Request",reqPct)}
+          ${progressRow("Content Delivery",deliveryPct)}
+          ${progressRow("Result Submitted",resultPct)}
+          ${progressRow("Scheduled vs Applications",scheduledPct)}
+          ${progressRow("Present vs Scheduled",presentPct)}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="analysis-section">
+      <h3>📅 Date & Action Alerts</h3>
+      <div style="padding:12px">${alerts.map(a=>`<div class="analysis-alert">${a}</div>`).join("")}</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="analysis-section">
+        <h3>Project Status</h3>
+        <table class="analysis-table">
+          <thead><tr><th>Status</th><th>Count</th><th>%</th></tr></thead>
+          <tbody>${countTable(statusCounts)}</tbody>
+        </table>
+      </div>
+      <div class="analysis-section">
+        <h3>Content Status</h3>
+        <table class="analysis-table">
+          <thead><tr><th>Status</th><th>Count</th><th>%</th></tr></thead>
+          <tbody>${countTable(contentCounts)}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="analysis-section">
+      <h3>📊 Operational Summary</h3>
+      <table class="analysis-table">
+        <tbody>
+          <tr><td>Objection Live</td><td colspan="2"><b>${objectionLive}</b></td></tr>
+          <tr><td>Objection Close</td><td colspan="2"><b>${objectionClose}</b></td></tr>
+          <tr><td>Upcoming Exams (next 30 days)</td><td colspan="2"><b>${upcoming}</b></td></tr>
+          <tr><td>Past / Overdue Exam Dates</td><td colspan="2"><b>${overdue}</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+</script>
+
 </body>
 </html>
