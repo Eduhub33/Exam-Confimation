@@ -256,7 +256,6 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <button class="btn-template" onclick="downloadTemplate()">Excel Template</button>
 <button class="btn-json" onclick="exportJSON()">Backup JSON</button>
 <button class="btn-json" onclick="importJSON()">Restore JSON</button>
-<button class="btn-reset" onclick="resetData()">Reset</button>
 <input id="search" class="search" type="text" placeholder="Search project or any field..." oninput="renderTable()">
 </div>
 
@@ -283,7 +282,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <tbody id="tableBody"></tbody>
 </table>
 </div>
-<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
+<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.xls</b>. Download the built-in template before importing.</div><div class="excel-note">🔐 Normal User: Add New Project → Fill Data → Save → Project Locked &nbsp; | &nbsp; 📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
 </div>
 <div id="flash" class="flash"></div>
 
@@ -319,6 +318,22 @@ localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
 renderTable();flash("Data saved successfully");
 }
 
+function normalUserCanEditProject(index){
+ const u=currentUser();
+ if(!u || u.role==="admin") return true;
+ const exam=exams[index];
+ return !!(exam && exam._createdBy===u.username && exam._savedByUser!==true);
+}
+function lockEditorElement(input,index){
+ const u=currentUser();
+ if(!u || u.role==="admin") return;
+ if(normalUserCanEditProject(index)) return;
+ if(input && input.nodeType===1){
+   if(input.matches && input.matches("input,select,textarea")) input.disabled=true;
+   input.querySelectorAll?.("input,select,textarea,button").forEach(el=>el.disabled=true);
+   input.classList.add("locked");
+ }
+}
 function renderTable(){
 const tbody=document.getElementById("tableBody");
 const search=document.getElementById("search").value.toLowerCase().trim();
@@ -377,8 +392,21 @@ td.appendChild(input);tr.appendChild(td);
 });
 
 const action=document.createElement("td");action.className="action";
-const button=document.createElement("button");button.className="delete-btn delete-row-btn";button.textContent="Delete";
-button.onclick=()=>deleteProject(index);action.appendChild(button);tr.appendChild(action);
+if(isAdmin()){
+ const button=document.createElement("button");
+ button.className="delete-btn delete-row-btn";
+ button.textContent="Delete";
+ button.onclick=()=>deleteProject(index);
+ action.appendChild(button);
+}else{
+ const label=document.createElement("span");
+ label.style.fontSize="11px";
+ label.style.fontWeight="700";
+ label.style.color=normalUserCanEditProject(index)?"#198754":"#777";
+ label.textContent=normalUserCanEditProject(index)?"EDITABLE":"LOCKED";
+ action.appendChild(label);
+}
+tr.appendChild(action);
 tbody.appendChild(tr);
 });
 updateSummary();
@@ -428,6 +456,11 @@ function createMultiDateEditor(value,index,field){
     btn.className="multi-date-btn";
     btn.innerHTML="📅";
     btn.title="Select exam dates";
+    if(!normalUserCanEditProject(index)){
+        btn.disabled=true;
+        text.disabled=true;
+        text.classList.add("locked");
+    }
 
     const popup=document.createElement("div");
     popup.className="multi-date-popup";
@@ -527,6 +560,11 @@ function createMultiDateEditor(value,index,field){
     }
 
     add.onclick=()=>{
+        if(!normalUserCanEditProject(index)){
+            alert("This project is locked. Normal users cannot edit saved/pre-filled projects.");
+            close();
+            return;
+        }
         if(!picker.value){
             alert("Please select an exam date first.");
             return;
@@ -549,6 +587,11 @@ function createMultiDateEditor(value,index,field){
     };
 
     clear.onclick=()=>{
+        if(!normalUserCanEditProject(index)){
+            alert("This project is locked. Normal users cannot edit saved/pre-filled projects.");
+            close();
+            return;
+        }
         dates=[];
         exams[index][field]="";
         if(field==="examDate"){
@@ -561,6 +604,11 @@ function createMultiDateEditor(value,index,field){
     };
 
     done.onclick=()=>{
+        if(!normalUserCanEditProject(index)){
+            alert("This project is locked. Normal users cannot edit saved/pre-filled projects.");
+            close();
+            return;
+        }
         const value=dates.join(",");
         exams[index][field]=value;
 
@@ -575,12 +623,20 @@ function createMultiDateEditor(value,index,field){
 
     btn.onclick=(e)=>{
         e.stopPropagation();
+        if(!normalUserCanEditProject(index)){
+            alert("This project is locked. Normal users cannot edit saved/pre-filled projects.");
+            return;
+        }
         if(popup.classList.contains("open")) close();
         else open();
     };
 
     text.onclick=(e)=>{
         e.stopPropagation();
+        if(!normalUserCanEditProject(index)){
+            alert("This project is locked. Normal users cannot edit saved/pre-filled projects.");
+            return;
+        }
         open();
     };
 
@@ -717,7 +773,7 @@ const XLSX_OFFLINE={
  createXLSX(rows){const contentTypes='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',workbook='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Exam Tracker" sheetId="1" r:id="rId1"/></sheets></workbook>',workbookRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';return this.makeZip([{name:'[Content_Types].xml',data:contentTypes},{name:'_rels/.rels',data:rootRels},{name:'xl/workbook.xml',data:workbook},{name:'xl/_rels/workbook.xml.rels',data:workbookRels},{name:'xl/worksheets/sheet1.xml',data:this.makeSheet(rows)}]);}
 };
 
-function exportExcel(){try{const rows=[headers,...exams.map(exam=>fields.map(field=>exam[field]??''))],bytes=XLSX_OFFLINE.createXLSX(rows),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker.xlsx');flash('Excel exported successfully - offline mode');}catch(error){console.error(error);alert('Excel export failed.\n\n'+error.message);}}
+function exportExcel(){if(!isAdmin()){alert("Only Admin can export Excel.");return;}try{const rows=[headers,...exams.map(exam=>fields.map(field=>exam[field]??''))],bytes=XLSX_OFFLINE.createXLSX(rows),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker.xlsx');flash('Excel exported successfully - offline mode');}catch(error){console.error(error);alert('Excel export failed.\n\n'+error.message);}}
 
 
 /* ======================================================
@@ -962,11 +1018,11 @@ function formatImportedDate(date){
 }
 
 
-function importExcel(){const input=document.createElement('input');input.type='file';input.accept='.xlsx,.xls,.csv';input.onchange=async function(){const file=input.files&&input.files[0];if(!file)return;try{let rows;const lower=file.name.toLowerCase();if(lower.endsWith('.csv'))rows=parseCSV(await file.text());else if(lower.endsWith('.xlsx'))rows=await XLSX_OFFLINE.parseXLSX(await file.arrayBuffer());else throw new Error('Legacy .xls files are not supported in the fully offline version. Please open the .xls file in Excel and save it as .xlsx, then import it.');if(!rows||rows.length<2)throw new Error('No data found in the selected file.');const imported=convertExcelRows(rows);if(!imported.length)throw new Error('No valid project records found. Please make sure the Excel file contains a Project column.');const replace=confirm('Found '+imported.length+' project(s).\n\nOK = REPLACE current data\nCancel = APPEND imported data');exams=replace?imported:exams.concat(imported);saveData();flash(imported.length+' project(s) imported successfully');}catch(error){console.error(error);alert('Excel import failed.\n\n'+error.message);}};input.click();}
+function importExcel(){if(!isAdmin()){alert("Only Admin can import Excel.");return;}const input=document.createElement('input');input.type='file';input.accept='.xlsx,.xls,.csv';input.onchange=async function(){const file=input.files&&input.files[0];if(!file)return;try{let rows;const lower=file.name.toLowerCase();if(lower.endsWith('.csv'))rows=parseCSV(await file.text());else if(lower.endsWith('.xlsx'))rows=await XLSX_OFFLINE.parseXLSX(await file.arrayBuffer());else throw new Error('Legacy .xls files are not supported in the fully offline version. Please open the .xls file in Excel and save it as .xlsx, then import it.');if(!rows||rows.length<2)throw new Error('No data found in the selected file.');const imported=convertExcelRows(rows);if(!imported.length)throw new Error('No valid project records found. Please make sure the Excel file contains a Project column.');const replace=confirm('Found '+imported.length+' project(s).\n\nOK = REPLACE current data\nCancel = APPEND imported data');exams=replace?imported:exams.concat(imported);saveData();flash(imported.length+' project(s) imported successfully');}catch(error){console.error(error);alert('Excel import failed.\n\n'+error.message);}};input.click();}
 
 function parseCSV(text){const rows=[];let row=[],field='',quoted=false;for(let i=0;i<text.length;i++){const ch=text[i],next=text[i+1];if(ch==='"'){if(quoted&&next==='"'){field+='"';i++;}else quoted=!quoted;}else if(ch===','&&!quoted){row.push(field);field='';}else if((ch==='\n'||ch==='\r')&&!quoted){if(ch==='\r'&&next==='\n')i++;row.push(field);field='';if(row.some(v=>String(v).trim()!==''))rows.push(row);row=[];}else field+=ch;}if(field!==''||row.length){row.push(field);if(row.some(v=>String(v).trim()!==''))rows.push(row);}return rows;}
 
-function downloadTemplate(){try{const sampleRow=['Example Project','08/09/2026',742,742,700,5,8,10,'Yes','01/08/2026','03/09/2026',4,'Scheduled','18/07/2026','06/08/2026','WIP',0,0,'','Example remark'];const bytes=XLSX_OFFLINE.createXLSX([headers,sampleRow]),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker_Import_Template.xlsx');flash('Excel template downloaded - offline mode');}catch(error){console.error(error);alert('Template generation failed.\n\n'+error.message);}}
+function downloadTemplate(){if(!isAdmin()){alert("Only Admin can download the Excel template.");return;}try{const sampleRow=['Example Project','08/09/2026',742,742,700,5,8,10,'Yes','01/08/2026','03/09/2026',4,'Scheduled','18/07/2026','06/08/2026','WIP',0,0,'','Example remark'];const bytes=XLSX_OFFLINE.createXLSX([headers,sampleRow]),blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});downloadBlob(blob,'Exam_Content_Tracker_Import_Template.xlsx');flash('Excel template downloaded - offline mode');}catch(error){console.error(error);alert('Template generation failed.\n\n'+error.message);}}
 
 function exportJSON(){
 const blob=new Blob([JSON.stringify(exams,null,2)],{type:"application/json"});
@@ -1232,9 +1288,12 @@ function logoutUser(){sessionStorage.removeItem(SESSION_KEY);location.reload()}
 function applyPermissions(){
  const u=currentUser();
  if(!u){document.getElementById("authOverlay").style.display="flex";return}
- const b=document.getElementById("loginUserBadge"); if(b)b.textContent="👤 "+(u.name||u.username)+(isAdmin()?" (Admin)":" (User)");
- document.querySelectorAll(".delete-row-btn,.delete-btn").forEach(x=>x.style.display=isAdmin()?"":"none");
- const a=document.getElementById("adminSettingsBtn");if(a)a.style.display=isAdmin()?"":"none";
+ const admin=isAdmin();
+ const b=document.getElementById("loginUserBadge");
+ if(b)b.textContent="👤 "+(u.name||u.username)+(admin?" (Admin)":" (User)");
+ document.querySelectorAll(".delete-row-btn,.delete-btn").forEach(x=>x.style.display=admin?"":"none");
+ const a=document.getElementById("adminSettingsBtn");if(a)a.style.display=admin?"":"none";
+ document.querySelectorAll(".btn-excel,.btn-import,.btn-template,.btn-json").forEach(x=>x.style.display=admin?"":"none");
 }
 function addAuthControls(){
  if(document.getElementById("loginUserBadge"))return;
