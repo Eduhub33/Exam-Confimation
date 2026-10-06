@@ -5,13 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Exam Content Tracker</title>
 
-<!-- Excel Library -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
 <style>
-*{
-    box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 body{
     margin:0;
@@ -59,35 +54,12 @@ button{
     font-weight:600;
 }
 
-.btn-add{
-    background:#198754;
-    color:white;
-}
-
-.btn-save{
-    background:#ff7900;
-    color:white;
-}
-
-.btn-excel{
-    background:#217346;
-    color:white;
-}
-
-.btn-import{
-    background:#107c41;
-    color:white;
-}
-
-.btn-reset{
-    background:#dc3545;
-    color:white;
-}
-
-.btn-json{
-    background:#555;
-    color:white;
-}
+.btn-add{background:#198754;color:#fff}
+.btn-save{background:#ff7900;color:#fff}
+.btn-excel{background:#217346;color:#fff}
+.btn-import{background:#107c41;color:#fff}
+.btn-reset{background:#dc3545;color:#fff}
+.btn-json{background:#555;color:#fff}
 
 .search{
     margin-left:auto;
@@ -132,7 +104,7 @@ button{
 
 table{
     width:100%;
-    min-width:2400px;
+    min-width:2500px;
     border-collapse:collapse;
 }
 
@@ -140,7 +112,7 @@ th{
     position:sticky;
     top:0;
     background:#222;
-    color:white;
+    color:#fff;
     padding:9px 7px;
     border:1px solid #444;
     font-size:12px;
@@ -155,15 +127,6 @@ td{
     font-size:12px;
 }
 
-td:first-child,
-th:first-child{
-    position:sticky;
-    left:0;
-    z-index:3;
-    background:#222;
-    color:#fff;
-}
-
 input,
 select,
 textarea{
@@ -175,12 +138,6 @@ textarea{
     background:#fff;
 }
 
-textarea{
-    min-width:150px;
-    min-height:55px;
-    resize:vertical;
-}
-
 input:focus,
 select:focus,
 textarea:focus{
@@ -188,20 +145,26 @@ textarea:focus{
     border-color:#ff7900;
 }
 
-.num{
-    min-width:75px;
-}
-
-.date{
-    min-width:120px;
+textarea{
+    min-width:180px;
+    min-height:55px;
+    resize:vertical;
 }
 
 .project{
     min-width:180px;
 }
 
+.date{
+    min-width:125px;
+}
+
+.num{
+    min-width:80px;
+}
+
 .remark{
-    min-width:200px;
+    min-width:220px;
 }
 
 .action{
@@ -211,45 +174,8 @@ textarea:focus{
 
 .delete-btn{
     background:#dc3545;
-    color:white;
+    color:#fff;
     padding:6px 9px;
-    border-radius:5px;
-}
-
-.status-scheduled{
-    background:#fff3cd;
-}
-
-.status-ongoing{
-    background:#cff4fc;
-}
-
-.status-completed{
-    background:#d1e7dd;
-}
-
-.status-cancelled{
-    background:#f8d7da;
-}
-
-.status-hold{
-    background:#e2e3e5;
-}
-
-.content-ready{
-    background:#d1e7dd;
-}
-
-.content-wip{
-    background:#fff3cd;
-}
-
-.content-pending{
-    background:#f8d7da;
-}
-
-.content-completed{
-    background:#cfe2ff;
 }
 
 .flash{
@@ -335,40 +261,40 @@ textarea:focus{
 
 <div class="summary">
 
-    <div class="card">
-        <div class="number" id="totalProjects">0</div>
-        <div class="label">Projects</div>
-    </div>
+<div class="card">
+<div class="number" id="totalProjects">0</div>
+<div class="label">Projects</div>
+</div>
 
-    <div class="card">
-        <div class="number" id="totalApplications">0</div>
-        <div class="label">Applications</div>
-    </div>
+<div class="card">
+<div class="number" id="totalApplications">0</div>
+<div class="label">Applications</div>
+</div>
 
-    <div class="card">
-        <div class="number" id="totalScheduled">0</div>
-        <div class="label">Scheduled</div>
-    </div>
+<div class="card">
+<div class="number" id="totalScheduled">0</div>
+<div class="label">Scheduled</div>
+</div>
 
-    <div class="card">
-        <div class="number" id="totalPresent">0</div>
-        <div class="label">Present</div>
-    </div>
+<div class="card">
+<div class="number" id="totalPresent">0</div>
+<div class="label">Present</div>
+</div>
 
-    <div class="card">
-        <div class="number" id="totalReady">0</div>
-        <div class="label">Ready</div>
-    </div>
+<div class="card">
+<div class="number" id="totalReady">0</div>
+<div class="label">Ready</div>
+</div>
 
-    <div class="card">
-        <div class="number" id="totalWIP">0</div>
-        <div class="label">WIP</div>
-    </div>
+<div class="card">
+<div class="number" id="totalWIP">0</div>
+<div class="label">WIP</div>
+</div>
 
-    <div class="card">
-        <div class="number" id="totalPending">0</div>
-        <div class="label">Pending</div>
-    </div>
+<div class="card">
+<div class="number" id="totalPending">0</div>
+<div class="label">Pending</div>
+</div>
 
 </div>
 
@@ -378,28 +304,28 @@ textarea:focus{
 
 <thead>
 <tr>
-    <th>Sl.</th>
-    <th>Project</th>
-    <th>Exam Date</th>
-    <th>Applications</th>
-    <th>Scheduled</th>
-    <th>Present</th>
-    <th>No. of State</th>
-    <th>No. of City</th>
-    <th>No. of Center</th>
-    <th>IRD/Syllabus Received</th>
-    <th>City Live Date</th>
-    <th>Admit Card Live Date</th>
-    <th>QP</th>
-    <th>Status</th>
-    <th>Content Request</th>
-    <th>Content Delivery</th>
-    <th>Content Status</th>
-    <th>No. of Objection Live</th>
-    <th>No. of Objection Close</th>
-    <th>Result Submit Date</th>
-    <th>Remark</th>
-    <th>Action</th>
+<th>Sl.</th>
+<th>Project</th>
+<th>Exam Date</th>
+<th>Applications</th>
+<th>Scheduled</th>
+<th>Present</th>
+<th>No. of State</th>
+<th>No. of City</th>
+<th>No. of Center</th>
+<th>IRD/Syllabus Received</th>
+<th>City Live Date</th>
+<th>Admit Card Live Date</th>
+<th>QP</th>
+<th>Status</th>
+<th>Content Request</th>
+<th>Content Delivery</th>
+<th>Content Status</th>
+<th>No. of Objection Live</th>
+<th>No. of Objection Close</th>
+<th>Result Submit Date</th>
+<th>Remark</th>
+<th>Action</th>
 </tr>
 </thead>
 
@@ -411,16 +337,21 @@ textarea:focus{
 
 <div class="excel-note">
     Excel Import supports <b>.xlsx</b> and <b>.xls</b>.
-    The first worksheet will be imported.
+    No external library is required.
 </div>
 
 </div>
 
 <div id="flash" class="flash"></div>
 
+
 <script>
 
-const STORAGE_KEY = "examContentTracker_v4";
+/* =====================================================
+   CONFIGURATION
+===================================================== */
+
+const STORAGE_KEY = "examContentTracker_v5";
 
 const fields = [
     "project",
@@ -443,27 +374,6 @@ const fields = [
     "objectionClose",
     "result",
     "remark"
-];
-
-const numericFields = [
-    "applications",
-    "scheduled",
-    "present",
-    "states",
-    "cities",
-    "centers",
-    "qp"
-];
-
-const dateFields = [
-    "examDate",
-    "cityLive",
-    "admitCard",
-    "request",
-    "delivery",
-    "objectionLive",
-    "objectionClose",
-    "result"
 ];
 
 const headers = [
@@ -489,150 +399,178 @@ const headers = [
     "Remark"
 ];
 
+const numericFields = [
+    "applications",
+    "scheduled",
+    "present",
+    "states",
+    "cities",
+    "centers",
+    "qp"
+];
+
+const dateFields = [
+    "examDate",
+    "cityLive",
+    "admitCard",
+    "request",
+    "delivery",
+    "objectionLive",
+    "objectionClose",
+    "result"
+];
+
+
+/* =====================================================
+   DEFAULT DATA
+===================================================== */
+
 let exams = [
 
 {
-    project:"PSPCL (Punjabi Lang)",
-    examDate:"2026-07-20",
-    applications:2431,
-    scheduled:2431,
-    present:"",
-    states:"",
-    cities:"",
-    centers:"",
-    ird:"",
-    cityLive:"",
-    admitCard:"",
-    qp:1,
-    status:"Completed",
-    request:"",
-    delivery:"",
-    content:"Ready",
-    objectionLive:"",
-    objectionClose:"",
-    result:"",
-    remark:"Exam Completed"
+project:"PSPCL (Punjabi Lang)",
+examDate:"2026-07-20",
+applications:2431,
+scheduled:2431,
+present:"",
+states:"",
+cities:"",
+centers:"",
+ird:"",
+cityLive:"",
+admitCard:"",
+qp:1,
+status:"Completed",
+request:"",
+delivery:"",
+content:"Ready",
+objectionLive:"",
+objectionClose:"",
+result:"",
+remark:"Exam Completed"
 },
 
 {
-    project:"NBCC",
-    examDate:"2026-07-25",
-    applications:10664,
-    scheduled:10664,
-    present:"",
-    states:"",
-    cities:"",
-    centers:"",
-    ird:"",
-    cityLive:"",
-    admitCard:"",
-    qp:10,
-    status:"Scheduled",
-    request:"",
-    delivery:"",
-    content:"Ready",
-    objectionLive:"",
-    objectionClose:"",
-    result:"",
-    remark:""
+project:"NBCC",
+examDate:"2026-07-25",
+applications:10664,
+scheduled:10664,
+present:"",
+states:"",
+cities:"",
+centers:"",
+ird:"",
+cityLive:"",
+admitCard:"",
+qp:10,
+status:"Scheduled",
+request:"",
+delivery:"",
+content:"Ready",
+objectionLive:"",
+objectionClose:"",
+result:"",
+remark:""
 },
 
 {
-    project:"SPMCIL - IGM (Re-Exam)",
-    examDate:"2026-08-03",
-    applications:4,
-    scheduled:4,
-    present:"",
-    states:"",
-    cities:"",
-    centers:"",
-    ird:"",
-    cityLive:"",
-    admitCard:"",
-    qp:1,
-    status:"Scheduled",
-    request:"",
-    delivery:"",
-    content:"Ready",
-    objectionLive:"",
-    objectionClose:"",
-    result:"",
-    remark:""
+project:"SPMCIL - IGM (Re-Exam)",
+examDate:"2026-08-03",
+applications:4,
+scheduled:4,
+present:"",
+states:"",
+cities:"",
+centers:"",
+ird:"",
+cityLive:"",
+admitCard:"",
+qp:1,
+status:"Scheduled",
+request:"",
+delivery:"",
+content:"Ready",
+objectionLive:"",
+objectionClose:"",
+result:"",
+remark:""
 },
 
 {
-    project:"NHIDCL Stage 2",
-    examDate:"2026-08-12",
-    applications:742,
-    scheduled:742,
-    present:"",
-    states:"",
-    cities:"",
-    centers:"",
-    ird:"",
-    cityLive:"",
-    admitCard:"",
-    qp:4,
-    status:"Scheduled",
-    request:"2026-07-18",
-    delivery:"2026-08-06",
-    content:"WIP",
-    objectionLive:"",
-    objectionClose:"",
-    result:"",
-    remark:""
+project:"NHIDCL Stage 2",
+examDate:"2026-08-12",
+applications:742,
+scheduled:742,
+present:"",
+states:"",
+cities:"",
+centers:"",
+ird:"",
+cityLive:"",
+admitCard:"",
+qp:4,
+status:"Scheduled",
+request:"2026-07-18",
+delivery:"2026-08-06",
+content:"WIP",
+objectionLive:"",
+objectionClose:"",
+result:"",
+remark:""
 },
 
 {
-    project:"EDCIL-SMPCIL CNP",
-    examDate:"2026-08-18",
-    applications:1500,
-    scheduled:1500,
-    present:"",
-    states:"",
-    cities:"",
-    centers:"",
-    ird:"",
-    cityLive:"",
-    admitCard:"",
-    qp:2,
-    status:"Scheduled",
-    request:"2026-07-20",
-    delivery:"2026-08-10",
-    content:"Pending",
-    objectionLive:"",
-    objectionClose:"",
-    result:"",
-    remark:""
+project:"EDCIL-SMPCIL CNP",
+examDate:"2026-08-18",
+applications:1500,
+scheduled:1500,
+present:"",
+states:"",
+cities:"",
+centers:"",
+ird:"",
+cityLive:"",
+admitCard:"",
+qp:2,
+status:"Scheduled",
+request:"2026-07-20",
+delivery:"2026-08-10",
+content:"Pending",
+objectionLive:"",
+objectionClose:"",
+result:"",
+remark:""
 }
 
 ];
 
 
-// ---------------------------------------------
-// INITIALIZE
-// ---------------------------------------------
+/* =====================================================
+   INITIAL LOAD
+===================================================== */
 
 loadData();
 renderTable();
 
 
-// ---------------------------------------------
-// LOAD DATA
-// ---------------------------------------------
+/* =====================================================
+   LOAD
+===================================================== */
 
 function loadData(){
 
     try{
 
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved =
+            localStorage.getItem(STORAGE_KEY);
 
         if(saved){
 
-            const parsed = JSON.parse(saved);
+            const data =
+                JSON.parse(saved);
 
-            if(Array.isArray(parsed)){
-                exams = parsed;
+            if(Array.isArray(data)){
+                exams = data;
             }
 
         }
@@ -646,9 +584,9 @@ function loadData(){
 }
 
 
-// ---------------------------------------------
-// SAVE DATA
-// ---------------------------------------------
+/* =====================================================
+   SAVE
+===================================================== */
 
 function saveData(){
 
@@ -657,16 +595,16 @@ function saveData(){
         JSON.stringify(exams)
     );
 
-    flash("Data saved successfully");
-
     renderTable();
+
+    flash("Data saved successfully");
 
 }
 
 
-// ---------------------------------------------
-// RENDER TABLE
-// ---------------------------------------------
+/* =====================================================
+   RENDER
+===================================================== */
 
 function renderTable(){
 
@@ -674,248 +612,288 @@ function renderTable(){
         document.getElementById("tableBody");
 
     const search =
-        document.getElementById("search")
+        document
+        .getElementById("search")
         .value
         .toLowerCase()
         .trim();
 
     tbody.innerHTML = "";
 
-    exams.forEach((exam,index)=>{
+    exams.forEach(
+        function(exam,index){
 
-        const searchable =
-            JSON.stringify(exam).toLowerCase();
+            const searchable =
+                JSON.stringify(exam)
+                .toLowerCase();
 
-        if(
-            search &&
-            !searchable.includes(search)
-        ){
-            return;
-        }
+            if(
+                search &&
+                !searchable.includes(search)
+            ){
+                return;
+            }
 
-        const tr =
-            document.createElement("tr");
-
-        const sl =
-            document.createElement("td");
-
-        sl.textContent = index + 1;
-
-        tr.appendChild(sl);
+            const tr =
+                document.createElement("tr");
 
 
-        fields.forEach(field=>{
-
-            const td =
+            const sl =
                 document.createElement("td");
 
-            let input;
+            sl.textContent =
+                index + 1;
+
+            tr.appendChild(sl);
 
 
-            // --------------------------------
-            // TEXTAREA
-            // --------------------------------
+            fields.forEach(
+                function(field){
 
-            if(field === "remark"){
+                    const td =
+                        document.createElement("td");
 
-                input =
-                    document.createElement("textarea");
-
-                input.className = "remark";
-
-                input.value =
-                    exam[field] ?? "";
-
-            }
+                    let input;
 
 
-            // --------------------------------
-            // STATUS
-            // --------------------------------
+                    /* TEXTAREA */
 
-            else if(field === "status"){
+                    if(field === "remark"){
 
-                input =
-                    document.createElement("select");
+                        input =
+                            document.createElement(
+                                "textarea"
+                            );
 
-                [
-                    "Scheduled",
-                    "Ongoing",
-                    "Completed",
-                    "Cancelled",
-                    "On Hold"
-                ].forEach(option=>{
+                        input.className =
+                            "remark";
 
-                    const o =
-                        document.createElement("option");
+                        input.value =
+                            exam[field] ?? "";
 
-                    o.value = option;
-                    o.textContent = option;
-
-                    input.appendChild(o);
-
-                });
-
-                input.value =
-                    exam[field] || "Scheduled";
-
-            }
+                    }
 
 
-            // --------------------------------
-            // CONTENT STATUS
-            // --------------------------------
+                    /* STATUS */
 
-            else if(field === "content"){
+                    else if(field === "status"){
 
-                input =
-                    document.createElement("select");
+                        input =
+                            document.createElement(
+                                "select"
+                            );
 
-                [
-                    "Ready",
-                    "WIP",
-                    "Pending",
-                    "Completed"
-                ].forEach(option=>{
+                        [
+                            "Scheduled",
+                            "Ongoing",
+                            "Completed",
+                            "Cancelled",
+                            "On Hold"
+                        ].forEach(
+                            function(value){
 
-                    const o =
-                        document.createElement("option");
+                                const option =
+                                    document.createElement(
+                                        "option"
+                                    );
 
-                    o.value = option;
-                    o.textContent = option;
+                                option.value =
+                                    value;
 
-                    input.appendChild(o);
+                                option.textContent =
+                                    value;
 
-                });
+                                input.appendChild(
+                                    option
+                                );
 
-                input.value =
-                    exam[field] || "Pending";
+                            }
+                        );
 
-            }
+                        input.value =
+                            exam[field] ||
+                            "Scheduled";
 
-
-            // --------------------------------
-            // DATE
-            // --------------------------------
-
-            else if(dateFields.includes(field)){
-
-                input =
-                    document.createElement("input");
-
-                input.type = "date";
-
-                input.className = "date";
-
-                input.value =
-                    exam[field] || "";
-
-            }
+                    }
 
 
-            // --------------------------------
-            // NUMBER
-            // --------------------------------
+                    /* CONTENT */
 
-            else if(numericFields.includes(field)){
+                    else if(field === "content"){
 
-                input =
-                    document.createElement("input");
+                        input =
+                            document.createElement(
+                                "select"
+                            );
 
-                input.type = "number";
+                        [
+                            "Ready",
+                            "WIP",
+                            "Pending",
+                            "Completed"
+                        ].forEach(
+                            function(value){
 
-                input.className = "num";
+                                const option =
+                                    document.createElement(
+                                        "option"
+                                    );
 
-                input.min = "0";
+                                option.value =
+                                    value;
 
-                input.value =
-                    exam[field] ?? "";
+                                option.textContent =
+                                    value;
 
-            }
+                                input.appendChild(
+                                    option
+                                );
 
+                            }
+                        );
 
-            // --------------------------------
-            // NORMAL TEXT
-            // --------------------------------
+                        input.value =
+                            exam[field] ||
+                            "Pending";
 
-            else{
-
-                input =
-                    document.createElement("input");
-
-                input.type = "text";
-
-                input.value =
-                    exam[field] ?? "";
-
-                if(field === "project"){
-                    input.className = "project";
-                }
-
-            }
+                    }
 
 
-            input.addEventListener(
-                "change",
-                function(){
+                    /* DATE */
 
-                    updateField(
-                        index,
-                        field,
-                        this.value
+                    else if(
+                        dateFields.includes(field)
+                    ){
+
+                        input =
+                            document.createElement(
+                                "input"
+                            );
+
+                        input.type =
+                            "date";
+
+                        input.className =
+                            "date";
+
+                        input.value =
+                            exam[field] || "";
+
+                    }
+
+
+                    /* NUMBER */
+
+                    else if(
+                        numericFields.includes(field)
+                    ){
+
+                        input =
+                            document.createElement(
+                                "input"
+                            );
+
+                        input.type =
+                            "number";
+
+                        input.min = "0";
+
+                        input.className =
+                            "num";
+
+                        input.value =
+                            exam[field] ?? "";
+
+                    }
+
+
+                    /* TEXT */
+
+                    else{
+
+                        input =
+                            document.createElement(
+                                "input"
+                            );
+
+                        input.type =
+                            "text";
+
+                        input.value =
+                            exam[field] ?? "";
+
+                        if(field === "project"){
+                            input.className =
+                                "project";
+                        }
+
+                    }
+
+
+                    input.addEventListener(
+                        "change",
+                        function(){
+
+                            updateField(
+                                index,
+                                field,
+                                this.value
+                            );
+
+                        }
                     );
+
+
+                    td.appendChild(input);
+
+                    tr.appendChild(td);
 
                 }
             );
 
 
-            td.appendChild(input);
+            /* DELETE */
 
-            tr.appendChild(td);
+            const action =
+                document.createElement("td");
 
-        });
+            action.className =
+                "action";
 
+            const button =
+                document.createElement("button");
 
-        // --------------------------------
-        // DELETE BUTTON
-        // --------------------------------
+            button.className =
+                "delete-btn";
 
-        const action =
-            document.createElement("td");
+            button.textContent =
+                "Delete";
 
-        action.className = "action";
+            button.onclick =
+                function(){
 
-        const del =
-            document.createElement("button");
+                    deleteProject(index);
 
-        del.className = "delete-btn";
+                };
 
-        del.textContent = "Delete";
+            action.appendChild(button);
 
-        del.onclick = function(){
-
-            deleteProject(index);
-
-        };
-
-        action.appendChild(del);
-
-        tr.appendChild(action);
+            tr.appendChild(action);
 
 
-        tbody.appendChild(tr);
+            tbody.appendChild(tr);
 
-    });
-
+        }
+    );
 
     updateSummary();
 
 }
 
 
-// ---------------------------------------------
-// UPDATE FIELD
-// ---------------------------------------------
+/* =====================================================
+   UPDATE FIELD
+===================================================== */
 
 function updateField(
     index,
@@ -923,20 +901,20 @@ function updateField(
     value
 ){
 
-    if(numericFields.includes(field)){
+    if(
+        numericFields.includes(field)
+    ){
 
-        if(value === ""){
-            exams[index][field] = "";
-        }
-        else{
-            exams[index][field] =
-                Number(value);
-        }
+        exams[index][field] =
+            value === ""
+            ? ""
+            : Number(value);
 
     }
     else{
 
-        exams[index][field] = value;
+        exams[index][field] =
+            value;
 
     }
 
@@ -950,13 +928,13 @@ function updateField(
 }
 
 
-// ---------------------------------------------
-// ADD PROJECT
-// ---------------------------------------------
+/* =====================================================
+   ADD
+===================================================== */
 
 function addProject(){
 
-    const newProject = {
+    exams.push({
 
         project:"New Project",
 
@@ -998,19 +976,16 @@ function addProject(){
 
         remark:""
 
-    };
-
-
-    exams.push(newProject);
+    });
 
     saveData();
 
 }
 
 
-// ---------------------------------------------
-// DELETE PROJECT
-// ---------------------------------------------
+/* =====================================================
+   DELETE
+===================================================== */
 
 function deleteProject(index){
 
@@ -1029,210 +1004,218 @@ function deleteProject(index){
 }
 
 
-// ---------------------------------------------
-// SUMMARY
-// ---------------------------------------------
+/* =====================================================
+   SUMMARY
+===================================================== */
 
 function updateSummary(){
 
-    const totalProjects =
-        exams.length;
-
-    const totalApplications =
+    const applications =
         exams.reduce(
             (sum,e)=>
-                sum + Number(e.applications || 0),
+                sum +
+                Number(e.applications || 0),
             0
         );
 
-    const totalScheduled =
+    const scheduled =
         exams.reduce(
             (sum,e)=>
-                sum + Number(e.scheduled || 0),
+                sum +
+                Number(e.scheduled || 0),
             0
         );
 
-    const totalPresent =
+    const present =
         exams.reduce(
             (sum,e)=>
-                sum + Number(e.present || 0),
+                sum +
+                Number(e.present || 0),
             0
         );
 
-    const totalReady =
+    const ready =
         exams.filter(
-            e=>e.content === "Ready"
+            e =>
+                e.content === "Ready"
         ).length;
 
-    const totalWIP =
+    const wip =
         exams.filter(
-            e=>e.content === "WIP"
+            e =>
+                e.content === "WIP"
         ).length;
 
-    const totalPending =
+    const pending =
         exams.filter(
-            e=>e.content === "Pending"
+            e =>
+                e.content === "Pending"
         ).length;
 
 
     document.getElementById(
         "totalProjects"
     ).textContent =
-        totalProjects;
-
+        exams.length;
 
     document.getElementById(
         "totalApplications"
     ).textContent =
-        totalApplications.toLocaleString();
-
+        applications.toLocaleString();
 
     document.getElementById(
         "totalScheduled"
     ).textContent =
-        totalScheduled.toLocaleString();
-
+        scheduled.toLocaleString();
 
     document.getElementById(
         "totalPresent"
     ).textContent =
-        totalPresent.toLocaleString();
-
+        present.toLocaleString();
 
     document.getElementById(
         "totalReady"
     ).textContent =
-        totalReady;
-
+        ready;
 
     document.getElementById(
         "totalWIP"
     ).textContent =
-        totalWIP;
-
+        wip;
 
     document.getElementById(
         "totalPending"
     ).textContent =
-        totalPending;
+        pending;
 
 }
 
 
-// ---------------------------------------------
-// EXPORT EXCEL
-// ---------------------------------------------
+/* =====================================================
+   EXPORT EXCEL
+===================================================== */
 
 function exportExcel(){
 
-    if(
-        typeof XLSX !== "undefined"
-    ){
+    const rows =
+        exams.map(
+            function(exam,index){
 
-        const exportRows =
-            exams.map(exam=>{
+                return [
+                    index + 1,
+                    ...fields.map(
+                        field =>
+                            exam[field] ?? ""
+                    )
+                ];
 
-                const row = {};
-
-                fields.forEach(
-                    (field,index)=>{
-
-                        row[
-                            headers[index]
-                        ] =
-                            exam[field] ?? "";
-
-                    }
-                );
-
-                return row;
-
-            });
+            }
+        );
 
 
-        const worksheet =
-            XLSX.utils.json_to_sheet(
-                exportRows
+    const allHeaders =
+        ["Sl.",...headers];
+
+
+    let html =
+`
+<html
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:x="urn:schemas-microsoft-com:office:excel"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+
+<meta charset="UTF-8">
+
+<!--[if gte mso 9]>
+
+<xml>
+
+<x:ExcelWorkbook>
+
+<x:ExcelWorksheets>
+
+<x:ExcelWorksheet>
+
+<x:Name>Exam Tracker</x:Name>
+
+<x:WorksheetOptions>
+
+<x:DisplayGridlines/>
+
+</x:WorksheetOptions>
+
+</x:ExcelWorksheet>
+
+</x:ExcelWorksheets>
+
+</x:ExcelWorkbook>
+
+</xml>
+
+<![endif]-->
+
+</head>
+
+<body>
+
+<table border="1">
+
+<tr>
+`;
+
+
+    allHeaders.forEach(
+        function(header){
+
+            html +=
+                "<th>" +
+                escapeExcelHTML(header) +
+                "</th>";
+
+        }
+    );
+
+
+    html += "</tr>";
+
+
+    rows.forEach(
+        function(row){
+
+            html += "<tr>";
+
+            row.forEach(
+                function(value){
+
+                    html +=
+                        "<td>" +
+                        escapeExcelHTML(value) +
+                        "</td>";
+
+                }
             );
 
+            html += "</tr>";
 
-        const workbook =
-            XLSX.utils.book_new();
-
-
-        XLSX.utils.book_append_sheet(
-            workbook,
-            worksheet,
-            "Exam Tracker"
-        );
+        }
+    );
 
 
-        XLSX.writeFile(
-            workbook,
-            "Exam_Content_Tracker.xlsx"
-        );
+    html +=
+`
+</table>
 
+</body>
 
-        flash(
-            "Excel file exported successfully"
-        );
-
-        return;
-
-    }
-
-
-    /*
-       Fallback if SheetJS is unavailable
-    */
-
-    const table =
-        document.getElementById(
-            "trackerTable"
-        );
-
-    const clone =
-        table.cloneNode(true);
-
-    clone
-        .querySelectorAll(
-            "input,select,textarea,button"
-        )
-        .forEach(el=>{
-
-            const td =
-                el.parentElement;
-
-            if(
-                el.tagName === "SELECT"
-            ){
-                td.textContent =
-                    el.value;
-            }
-            else{
-                td.textContent =
-                    el.value;
-            }
-
-        });
-
-
-    const html =
-        `
-        <html>
-        <head>
-        <meta charset="UTF-8">
-        </head>
-        <body>
-        ${clone.outerHTML}
-        </body>
-        </html>
-        `;
+</html>
+`;
 
 
     const blob =
         new Blob(
-            [html],
+            ["\ufeff",html],
             {
                 type:
                 "application/vnd.ms-excel"
@@ -1244,31 +1227,66 @@ function exportExcel(){
         URL.createObjectURL(blob);
 
 
-    const a =
+    const link =
         document.createElement("a");
 
-    a.href = url;
+    link.href =
+        url;
 
-    a.download =
+    link.download =
         "Exam_Content_Tracker.xls";
 
-    a.click();
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
 
     URL.revokeObjectURL(url);
+
+    flash(
+        "Excel exported successfully"
+    );
 
 }
 
 
-// ---------------------------------------------
-// IMPORT EXCEL
-// ---------------------------------------------
+function escapeExcelHTML(value){
+
+    return String(
+        value ?? ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    );
+
+}
+
+
+/* =====================================================
+   IMPORT EXCEL
+===================================================== */
 
 function importExcel(){
 
     const input =
         document.createElement("input");
 
-    input.type = "file";
+    input.type =
+        "file";
 
     input.accept =
         ".xlsx,.xls";
@@ -1288,67 +1306,50 @@ function importExcel(){
 
             try{
 
+                let rows = [];
+
+
                 if(
-                    typeof XLSX ===
-                    "undefined"
+                    file.name
+                    .toLowerCase()
+                    .endsWith(".xlsx")
                 ){
 
+                    rows =
+                        await readXLSX(
+                            file
+                        );
+
+                }
+
+                else if(
+                    file.name
+                    .toLowerCase()
+                    .endsWith(".xls")
+                ){
+
+                    rows =
+                        await readXLS(
+                            file
+                        );
+
+                }
+
+                else{
+
                     alert(
-                        "Excel import library could not be loaded. Please check your internet connection."
+                        "Please select an Excel .xlsx or .xls file."
                     );
 
                     return;
 
                 }
-
-
-                const buffer =
-                    await file.arrayBuffer();
-
-
-                const workbook =
-                    XLSX.read(
-                        buffer,
-                        {
-                            type:"array",
-                            cellDates:true
-                        }
-                    );
-
-
-                if(
-                    !workbook.SheetNames.length
-                ){
-
-                    alert(
-                        "No worksheet found in the Excel file."
-                    );
-
-                    return;
-
-                }
-
-
-                const sheet =
-                    workbook.Sheets[
-                        workbook.SheetNames[0]
-                    ];
-
-
-                const rows =
-                    XLSX.utils.sheet_to_json(
-                        sheet,
-                        {
-                            defval:"",
-                            raw:false
-                        }
-                    );
 
 
                 if(!rows.length){
 
                     alert(
-                        "The selected Excel file is empty."
+                        "No data found in the Excel file."
                     );
 
                     return;
@@ -1356,321 +1357,16 @@ function importExcel(){
                 }
 
 
-                /*
-                   Normalize Excel headers
-                */
-
-                const normalize =
-                    function(value){
-
-                        return String(
-                            value ?? ""
-                        )
-                        .trim()
-                        .toLowerCase()
-                        .replace(
-                            /[^a-z0-9]+/g,
-                            ""
-                        );
-
-                    };
-
-
-                /*
-                   Excel header aliases
-                */
-
-                const aliases = {
-
-                    project:[
-                        "project"
-                    ],
-
-                    examDate:[
-                        "examdate"
-                    ],
-
-                    applications:[
-                        "applications",
-                        "application",
-                        "noofapplications"
-                    ],
-
-                    scheduled:[
-                        "scheduled",
-                        "scheduledcandidates"
-                    ],
-
-                    present:[
-                        "present",
-                        "presentcandidates"
-                    ],
-
-                    states:[
-                        "noofstate",
-                        "noofstates",
-                        "states",
-                        "state"
-                    ],
-
-                    cities:[
-                        "noofcity",
-                        "noofcities",
-                        "cities",
-                        "city"
-                    ],
-
-                    centers:[
-                        "noofcenter",
-                        "noofcenters",
-                        "centers",
-                        "center"
-                    ],
-
-                    ird:[
-                        "irdsyllabusreceived",
-                        "ird",
-                        "syllabusreceived"
-                    ],
-
-                    cityLive:[
-                        "citylivedate",
-                        "citylive"
-                    ],
-
-                    admitCard:[
-                        "admitcardlivedate",
-                        "admitcardlive",
-                        "admitcard"
-                    ],
-
-                    qp:[
-                        "qp",
-                        "noofqp",
-                        "numberofqp"
-                    ],
-
-                    status:[
-                        "status"
-                    ],
-
-                    request:[
-                        "contentrequest",
-                        "request"
-                    ],
-
-                    delivery:[
-                        "contentdelivery",
-                        "delivery"
-                    ],
-
-                    content:[
-                        "contentstatus",
-                        "content"
-                    ],
-
-                    objectionLive:[
-                        "noofobjectionlive",
-                        "objectionlive",
-                        "objectionopendate",
-                        "objectionopen"
-                    ],
-
-                    objectionClose:[
-                        "noofobjectionclose",
-                        "objectionclose",
-                        "objectionclosedate"
-                    ],
-
-                    result:[
-                        "resultsubmitdate",
-                        "resultsubmit",
-                        "resultdate"
-                    ],
-
-                    remark:[
-                        "remark",
-                        "remarks"
-                    ]
-
-                };
-
-
-                const aliasMap = {};
-
-
-                Object.keys(
-                    aliases
-                ).forEach(
-                    function(field){
-
-                        aliases[field]
-                            .forEach(
-                                function(alias){
-
-                                    aliasMap[
-                                        normalize(alias)
-                                    ] =
-                                        field;
-
-                                }
-                            );
-
-                    }
-                );
-
-
-                /*
-                   Convert Excel rows
-                */
-
                 const imported =
-                    rows.map(
-                        function(row){
-
-                            const item = {};
-
-                            fields.forEach(
-                                function(field){
-
-                                    item[field] = "";
-
-                                }
-                            );
-
-
-                            Object.keys(row)
-                                .forEach(
-                                    function(header){
-
-                                        const field =
-                                            aliasMap[
-                                                normalize(
-                                                    header
-                                                )
-                                            ];
-
-
-                                        if(!field){
-                                            return;
-                                        }
-
-
-                                        let value =
-                                            row[header];
-
-
-                                        /*
-                                           Date conversion
-                                        */
-
-                                        if(
-                                            dateFields
-                                                .includes(
-                                                    field
-                                                )
-                                            &&
-                                            value
-                                        ){
-
-                                            const d =
-                                                new Date(
-                                                    value
-                                                );
-
-
-                                            if(
-                                                !Number.isNaN(
-                                                    d.getTime()
-                                                )
-                                            ){
-
-                                                value =
-                                                    d.toISOString()
-                                                     .slice(
-                                                         0,
-                                                         10
-                                                     );
-
-                                            }
-
-                                        }
-
-
-                                        /*
-                                           Number conversion
-                                        */
-
-                                        if(
-                                            numericFields
-                                                .includes(
-                                                    field
-                                                )
-                                        ){
-
-                                            const n =
-                                                String(
-                                                    value
-                                                )
-                                                .replace(
-                                                    /,/g,
-                                                    ""
-                                                )
-                                                .trim();
-
-
-                                            value =
-                                                n === ""
-                                                ?
-                                                ""
-                                                :
-                                                (
-                                                    Number.isFinite(
-                                                        Number(n)
-                                                    )
-                                                    ?
-                                                    Number(n)
-                                                    :
-                                                    n
-                                                );
-
-                                        }
-
-
-                                        item[field] =
-                                            value;
-
-                                    }
-                                );
-
-
-                            return item;
-
-                        }
-                    )
-                    .filter(
-                        function(item){
-
-                            return (
-                                String(
-                                    item.project ||
-                                    ""
-                                ).trim() !== ""
-                                ||
-                                String(
-                                    item.examDate ||
-                                    ""
-                                ).trim() !== ""
-                            );
-
-                        }
+                    convertExcelRows(
+                        rows
                     );
 
 
                 if(!imported.length){
 
                     alert(
-                        "No valid project rows were found in the Excel file."
+                        "No valid project rows found. Please ensure the Excel file has a Project column."
                     );
 
                     return;
@@ -1678,19 +1374,13 @@ function importExcel(){
                 }
 
 
-                /*
-                   Confirmation
-                */
-
-                const confirmed =
-                    confirm(
+                if(
+                    !confirm(
                         "Import " +
                         imported.length +
-                        " project row(s) from Excel and replace the current data?"
-                    );
-
-
-                if(!confirmed){
+                        " project(s) and replace current data?"
+                    )
+                ){
                     return;
                 }
 
@@ -1701,7 +1391,6 @@ function importExcel(){
 
                 saveData();
 
-
                 renderTable();
 
 
@@ -1709,14 +1398,14 @@ function importExcel(){
                     "Excel imported successfully"
                 );
 
-
             }
             catch(error){
 
                 console.error(error);
 
                 alert(
-                    "Excel import failed. Please select a valid .xlsx or .xls file."
+                    "Excel import failed:\n\n" +
+                    error.message
                 );
 
             }
@@ -1729,9 +1418,1161 @@ function importExcel(){
 }
 
 
-// ---------------------------------------------
-// BACKUP JSON
-// ---------------------------------------------
+/* =====================================================
+   XLSX READER
+===================================================== */
+
+async function readXLSX(file){
+
+    if(
+        typeof DecompressionStream ===
+        "undefined"
+    ){
+
+        throw new Error(
+            "Your browser does not support native Excel reading. Please use the latest Google Chrome or Microsoft Edge."
+        );
+
+    }
+
+
+    const buffer =
+        await file.arrayBuffer();
+
+    const data =
+        new Uint8Array(buffer);
+
+
+    const zip =
+        parseZIP(data);
+
+
+    const workbookXML =
+        await readZIPText(
+            zip,
+            "xl/workbook.xml"
+        );
+
+
+    const relationsXML =
+        await readZIPText(
+            zip,
+            "xl/_rels/workbook.xml.rels"
+        );
+
+
+    const parser =
+        new DOMParser();
+
+
+    const workbookDoc =
+        parser.parseFromString(
+            workbookXML,
+            "application/xml"
+        );
+
+
+    const relationsDoc =
+        parser.parseFromString(
+            relationsXML,
+            "application/xml"
+        );
+
+
+    const sheet =
+        workbookDoc
+        .getElementsByTagNameNS(
+            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+            "sheet"
+        )[0];
+
+
+    if(!sheet){
+
+        throw new Error(
+            "No worksheet found."
+        );
+
+    }
+
+
+    const relationshipID =
+        sheet.getAttribute(
+            "r:id"
+        );
+
+
+    const relationship =
+        Array.from(
+            relationsDoc
+            .getElementsByTagName(
+                "Relationship"
+            )
+        )
+        .find(
+            r =>
+                r.getAttribute("Id")
+                ===
+                relationshipID
+        );
+
+
+    if(!relationship){
+
+        throw new Error(
+            "Worksheet relationship not found."
+        );
+
+    }
+
+
+    let target =
+        relationship.getAttribute(
+            "Target"
+        );
+
+
+    target =
+        target.replace(
+            /^\/+/,
+            ""
+        );
+
+
+    if(
+        !target.startsWith("xl/")
+    ){
+
+        target =
+            "xl/" +
+            target.replace(
+                /^\.?\//,
+                ""
+            );
+
+    }
+
+
+    const sheetXML =
+        await readZIPText(
+            zip,
+            target
+        );
+
+
+    let sharedStrings = [];
+
+
+    if(
+        zip["xl/sharedStrings.xml"]
+    ){
+
+        const sharedXML =
+            await readZIPText(
+                zip,
+                "xl/sharedStrings.xml"
+            );
+
+
+        const sharedDoc =
+            parser.parseFromString(
+                sharedXML,
+                "application/xml"
+            );
+
+
+        sharedStrings =
+            Array.from(
+                sharedDoc
+                .getElementsByTagNameNS(
+                    "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                    "si"
+                )
+            )
+            .map(
+                function(si){
+
+                    return Array.from(
+                        si.getElementsByTagNameNS(
+                            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                            "t"
+                        )
+                    )
+                    .map(
+                        t =>
+                            t.textContent || ""
+                    )
+                    .join("");
+
+                }
+            );
+
+    }
+
+
+    const sheetDoc =
+        parser.parseFromString(
+            sheetXML,
+            "application/xml"
+        );
+
+
+    const rowNodes =
+        Array.from(
+            sheetDoc
+            .getElementsByTagNameNS(
+                "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                "row"
+            )
+        );
+
+
+    const matrix = [];
+
+
+    rowNodes.forEach(
+        function(rowNode){
+
+            const cells =
+                Array.from(
+                    rowNode
+                    .getElementsByTagNameNS(
+                        "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                        "c"
+                    )
+                );
+
+
+            const row = {};
+
+
+            cells.forEach(
+                function(cell){
+
+                    const reference =
+                        cell.getAttribute("r");
+
+                    const column =
+                        reference
+                        .replace(
+                            /[0-9]/g,
+                            ""
+                        );
+
+
+                    const type =
+                        cell.getAttribute("t")
+                        || "";
+
+
+                    const valueNode =
+                        cell
+                        .getElementsByTagNameNS(
+                            "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                            "v"
+                        )[0];
+
+
+                    let value = "";
+
+
+                    if(
+                        type === "inlineStr"
+                    ){
+
+                        const inline =
+                            cell
+                            .getElementsByTagNameNS(
+                                "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                                "is"
+                            )[0];
+
+
+                        if(inline){
+
+                            value =
+                                Array.from(
+                                    inline
+                                    .getElementsByTagNameNS(
+                                        "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+                                        "t"
+                                    )
+                                )
+                                .map(
+                                    t =>
+                                        t.textContent || ""
+                                )
+                                .join("");
+
+                        }
+
+                    }
+
+                    else if(valueNode){
+
+                        value =
+                            valueNode
+                            .textContent || "";
+
+
+                        if(
+                            type === "s"
+                        ){
+
+                            value =
+                                sharedStrings[
+                                    Number(value)
+                                ] || "";
+
+                        }
+
+
+                        if(
+                            type === "b"
+                        ){
+
+                            value =
+                                value === "1"
+                                ?
+                                "TRUE"
+                                :
+                                "FALSE";
+
+                        }
+
+                    }
+
+
+                    row[column] =
+                        value;
+
+                }
+            );
+
+
+            matrix.push(row);
+
+        }
+    );
+
+
+    if(!matrix.length){
+        return [];
+    }
+
+
+    let maxColumn = 0;
+
+
+    matrix.forEach(
+        function(row){
+
+            Object.keys(row)
+            .forEach(
+                function(column){
+
+                    maxColumn =
+                        Math.max(
+                            maxColumn,
+                            columnNumber(
+                                column
+                            )
+                        );
+
+                }
+            );
+
+        }
+    );
+
+
+    return matrix.map(
+        function(row){
+
+            const array = [];
+
+            for(
+                let i=1;
+                i<=maxColumn;
+                i++
+            ){
+
+                array.push(
+                    row[
+                        columnName(i)
+                    ] ?? ""
+                );
+
+            }
+
+            return array;
+
+        }
+    );
+
+}
+
+
+/* =====================================================
+   ZIP PARSER
+===================================================== */
+
+function parseZIP(data){
+
+    const entries = {};
+
+    const view =
+        new DataView(
+            data.buffer
+        );
+
+
+    let offset = 0;
+
+
+    while(
+        offset + 4 <=
+        data.length
+    ){
+
+        const signature =
+            view.getUint32(
+                offset,
+                true
+            );
+
+
+        if(
+            signature ===
+            0x04034b50
+        ){
+
+            const method =
+                view.getUint16(
+                    offset + 8,
+                    true
+                );
+
+
+            const compressedSize =
+                view.getUint32(
+                    offset + 18,
+                    true
+                );
+
+
+            const fileNameLength =
+                view.getUint16(
+                    offset + 26,
+                    true
+                );
+
+
+            const extraLength =
+                view.getUint16(
+                    offset + 28,
+                    true
+                );
+
+
+            const name =
+                new TextDecoder()
+                .decode(
+                    data.slice(
+                        offset + 30,
+                        offset +
+                        30 +
+                        fileNameLength
+                    )
+                );
+
+
+            const start =
+                offset +
+                30 +
+                fileNameLength +
+                extraLength;
+
+
+            const content =
+                data.slice(
+                    start,
+                    start +
+                    compressedSize
+                );
+
+
+            entries[name] = {
+                method:method,
+                content:content
+            };
+
+
+            offset =
+                start +
+                compressedSize;
+
+        }
+
+        else if(
+            signature ===
+            0x02014b50
+        ){
+
+            break;
+
+        }
+
+        else if(
+            signature ===
+            0x06054b50
+        ){
+
+            break;
+
+        }
+
+        else{
+
+            offset++;
+
+        }
+
+    }
+
+
+    return entries;
+
+}
+
+
+/* =====================================================
+   READ ZIP TEXT
+===================================================== */
+
+async function readZIPText(
+    entries,
+    name
+){
+
+    const entry =
+        entries[name];
+
+
+    if(!entry){
+
+        throw new Error(
+            "Excel component missing: " +
+            name
+        );
+
+    }
+
+
+    let bytes;
+
+
+    if(
+        entry.method === 0
+    ){
+
+        bytes =
+            entry.content;
+
+    }
+
+    else if(
+        entry.method === 8
+    ){
+
+        const stream =
+            new Blob(
+                [entry.content]
+            )
+            .stream()
+            .pipeThrough(
+                new DecompressionStream(
+                    "deflate-raw"
+                )
+            );
+
+
+        bytes =
+            new Uint8Array(
+                await new Response(
+                    stream
+                ).arrayBuffer()
+            );
+
+    }
+
+    else{
+
+        throw new Error(
+            "Unsupported Excel compression method."
+        );
+
+    }
+
+
+    return new TextDecoder(
+        "utf-8"
+    ).decode(
+        bytes
+    );
+
+}
+
+
+/* =====================================================
+   COLUMN HELPERS
+===================================================== */
+
+function columnNumber(column){
+
+    let number = 0;
+
+
+    for(
+        const character of column
+    ){
+
+        number =
+            number * 26 +
+            character.charCodeAt(0) -
+            64;
+
+    }
+
+
+    return number;
+
+}
+
+
+function columnName(number){
+
+    let name = "";
+
+
+    while(
+        number > 0
+    ){
+
+        const remainder =
+            (number - 1) %
+            26;
+
+
+        name =
+            String.fromCharCode(
+                65 + remainder
+            ) +
+            name;
+
+
+        number =
+            Math.floor(
+                (number - 1) / 26
+            );
+
+    }
+
+
+    return name;
+
+}
+
+
+/* =====================================================
+   OLD XLS / HTML EXCEL
+===================================================== */
+
+async function readXLS(file){
+
+    const text =
+        await file.text();
+
+
+    const parser =
+        new DOMParser();
+
+
+    const document =
+        parser.parseFromString(
+            text,
+            "text/html"
+        );
+
+
+    const table =
+        document.querySelector(
+            "table"
+        );
+
+
+    if(!table){
+
+        throw new Error(
+            "The .xls file is not an HTML-based Excel file."
+        );
+
+    }
+
+
+    return Array.from(
+        table.rows
+    )
+    .map(
+        row =>
+            Array.from(
+                row.cells
+            )
+            .map(
+                cell =>
+                    cell.textContent.trim()
+            )
+    );
+
+}
+
+
+/* =====================================================
+   MAP EXCEL DATA
+===================================================== */
+
+function convertExcelRows(rows){
+
+    if(!rows.length){
+        return [];
+    }
+
+
+    const normalize =
+        function(value){
+
+            return String(
+                value ?? ""
+            )
+            .trim()
+            .toLowerCase()
+            .replace(
+                /[^a-z0-9]+/g,
+                ""
+            );
+
+        };
+
+
+    const aliases = {
+
+        project:[
+            "project"
+        ],
+
+        examDate:[
+            "examdate"
+        ],
+
+        applications:[
+            "applications",
+            "application",
+            "noofapplications"
+        ],
+
+        scheduled:[
+            "scheduled",
+            "scheduledcandidates"
+        ],
+
+        present:[
+            "present",
+            "presentcandidates"
+        ],
+
+        states:[
+            "noofstate",
+            "noofstates",
+            "states",
+            "state"
+        ],
+
+        cities:[
+            "noofcity",
+            "noofcities",
+            "cities",
+            "city"
+        ],
+
+        centers:[
+            "noofcenter",
+            "noofcenters",
+            "centers",
+            "center"
+        ],
+
+        ird:[
+            "irdsyllabusreceived",
+            "ird",
+            "syllabusreceived"
+        ],
+
+        cityLive:[
+            "citylivedate",
+            "citylive"
+        ],
+
+        admitCard:[
+            "admitcardlivedate",
+            "admitcardlive",
+            "admitcard"
+        ],
+
+        qp:[
+            "qp",
+            "noofqp",
+            "numberofqp"
+        ],
+
+        status:[
+            "status"
+        ],
+
+        request:[
+            "contentrequest",
+            "request"
+        ],
+
+        delivery:[
+            "contentdelivery",
+            "delivery"
+        ],
+
+        content:[
+            "contentstatus",
+            "content"
+        ],
+
+        objectionLive:[
+            "noofobjectionlive",
+            "objectionlive",
+            "objectionopendate",
+            "objectionopen"
+        ],
+
+        objectionClose:[
+            "noofobjectionclose",
+            "objectionclose",
+            "objectionclosedate"
+        ],
+
+        result:[
+            "resultsubmitdate",
+            "resultsubmit",
+            "resultdate"
+        ],
+
+        remark:[
+            "remark",
+            "remarks"
+        ]
+
+    };
+
+
+    const aliasMap = {};
+
+
+    Object.keys(
+        aliases
+    )
+    .forEach(
+        function(field){
+
+            aliases[field]
+            .forEach(
+                function(alias){
+
+                    aliasMap[
+                        normalize(alias)
+                    ] =
+                        field;
+
+                }
+            );
+
+        }
+    );
+
+
+    const headerRow =
+        rows[0];
+
+
+    const headerMap =
+        headerRow.map(
+            normalize
+        );
+
+
+    const result = [];
+
+
+    for(
+        let rowIndex=1;
+        rowIndex<rows.length;
+        rowIndex++
+    ){
+
+        const row =
+            rows[rowIndex];
+
+
+        const item = {};
+
+
+        fields.forEach(
+            field =>
+                item[field] = ""
+        );
+
+
+        for(
+            let column=0;
+            column<headerMap.length;
+            column++
+        ){
+
+            const field =
+                aliasMap[
+                    headerMap[column]
+                ];
+
+
+            if(!field){
+                continue;
+            }
+
+
+            let value =
+                row[column] ?? "";
+
+
+            if(
+                numericFields.includes(
+                    field
+                )
+            ){
+
+                const clean =
+                    String(value)
+                    .replace(
+                        /,/g,
+                        ""
+                    )
+                    .trim();
+
+
+                if(
+                    clean === ""
+                ){
+
+                    value = "";
+
+                }
+
+                else if(
+                    Number.isFinite(
+                        Number(clean)
+                    )
+                ){
+
+                    value =
+                        Number(clean);
+
+                }
+
+            }
+
+
+            if(
+                dateFields.includes(
+                    field
+                )
+            ){
+
+                value =
+                    convertDate(
+                        value
+                    );
+
+            }
+
+
+            item[field] =
+                value;
+
+        }
+
+
+        if(
+            String(
+                item.project || ""
+            ).trim() !== ""
+            ||
+            String(
+                item.examDate || ""
+            ).trim() !== ""
+        ){
+
+            result.push(
+                item
+            );
+
+        }
+
+    }
+
+
+    return result;
+
+}
+
+
+/* =====================================================
+   DATE CONVERSION
+===================================================== */
+
+function convertDate(value){
+
+    if(
+        value === "" ||
+        value == null
+    ){
+
+        return "";
+
+    }
+
+
+    const text =
+        String(value)
+        .trim();
+
+
+    if(
+        /^\d{4}-\d{2}-\d{2}$/
+        .test(text)
+    ){
+
+        return text;
+
+    }
+
+
+    /*
+       Excel serial date
+    */
+
+    if(
+        /^\d+(\.\d+)?$/
+        .test(text)
+    ){
+
+        const serial =
+            Number(text);
+
+
+        if(
+            serial > 20000 &&
+            serial < 100000
+        ){
+
+            const date =
+                new Date(
+                    Date.UTC(
+                        1899,
+                        11,
+                        30
+                    )
+                );
+
+
+            date.setUTCDate(
+                date.getUTCDate() +
+                Math.floor(serial)
+            );
+
+
+            return date
+            .toISOString()
+            .slice(
+                0,
+                10
+            );
+
+        }
+
+    }
+
+
+    /*
+       DD/MM/YYYY
+    */
+
+    const match =
+        text.match(
+            /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
+        );
+
+
+    if(match){
+
+        return (
+            match[3] +
+            "-" +
+            match[2].padStart(
+                2,
+                "0"
+            ) +
+            "-" +
+            match[1].padStart(
+                2,
+                "0"
+            )
+        );
+
+    }
+
+
+    const date =
+        new Date(text);
+
+
+    if(
+        !Number.isNaN(
+            date.getTime()
+        )
+    ){
+
+        return date
+        .toISOString()
+        .slice(
+            0,
+            10
+        );
+
+    }
+
+
+    return text;
+
+}
+
+
+/* =====================================================
+   JSON BACKUP
+===================================================== */
 
 function exportJSON(){
 
@@ -1745,7 +2586,8 @@ function exportJSON(){
                 )
             ],
             {
-                type:"application/json"
+                type:
+                "application/json"
             }
         );
 
@@ -1754,35 +2596,43 @@ function exportJSON(){
         URL.createObjectURL(blob);
 
 
-    const a =
+    const link =
         document.createElement("a");
 
 
-    a.href = url;
+    link.href =
+        url;
 
-    a.download =
+    link.download =
         "Exam_Content_Tracker_Backup.json";
 
 
-    a.click();
+    document.body.appendChild(
+        link
+    );
 
+    link.click();
+
+    link.remove();
 
     URL.revokeObjectURL(url);
 
 }
 
 
-// ---------------------------------------------
-// RESTORE JSON
-// ---------------------------------------------
+/* =====================================================
+   JSON RESTORE
+===================================================== */
 
 function importJSON(){
 
     const input =
         document.createElement("input");
 
+
     input.type =
         "file";
+
 
     input.accept =
         ".json";
@@ -1795,6 +2645,7 @@ function importJSON(){
                 input.files &&
                 input.files[0];
 
+
             if(!file){
                 return;
             }
@@ -1805,13 +2656,13 @@ function importJSON(){
 
 
             reader.onload =
-                function(e){
+                function(event){
 
                     try{
 
                         const data =
                             JSON.parse(
-                                e.target.result
+                                event.target.result
                             );
 
 
@@ -1819,18 +2670,19 @@ function importJSON(){
                             !Array.isArray(data)
                         ){
 
-                            throw new Error(
-                                "Invalid format"
-                            );
+                            throw new Error();
 
                         }
 
 
-                        exams = data;
+                        exams =
+                            data;
+
 
                         saveData();
 
                         renderTable();
+
 
                         flash(
                             "JSON backup restored"
@@ -1840,7 +2692,7 @@ function importJSON(){
                     catch(error){
 
                         alert(
-                            "Invalid JSON backup file."
+                            "Invalid JSON backup."
                         );
 
                     }
@@ -1858,18 +2710,20 @@ function importJSON(){
 }
 
 
-// ---------------------------------------------
-// RESET
-// ---------------------------------------------
+/* =====================================================
+   RESET
+===================================================== */
 
 function resetData(){
 
     if(
         !confirm(
-            "Reset the dashboard to default data?"
+            "Reset dashboard to default data?"
         )
     ){
+
         return;
+
     }
 
 
@@ -1883,30 +2737,30 @@ function resetData(){
 }
 
 
-// ---------------------------------------------
-// FLASH MESSAGE
-// ---------------------------------------------
+/* =====================================================
+   FLASH
+===================================================== */
 
 function flash(message){
 
-    const box =
+    const element =
         document.getElementById(
             "flash"
         );
 
 
-    box.textContent =
+    element.textContent =
         message;
 
 
-    box.style.display =
+    element.style.display =
         "block";
 
 
     setTimeout(
         function(){
 
-            box.style.display =
+            element.style.display =
                 "none";
 
         },
