@@ -826,13 +826,13 @@ async function cloudSaveData(){
       }
 
       iframe.addEventListener("load",complete,{once:true});
-      setTimeout(complete,6000);
+      setTimeout(complete,7000);
 
       form.submit();
     });
 
-    // Give Apps Script a moment to commit PropertiesService, then read back.
-    await new Promise(function(resolve){setTimeout(resolve,1000)});
+    // Allow Apps Script to finish writing before the verification read.
+    await new Promise(function(resolve){setTimeout(resolve,1200)});
 
     const verified=await cloudLoadData();
 
@@ -882,7 +882,9 @@ function persistData(){
     localStorage.setItem(STORAGE_KEY,payload);
     localStorage.setItem(STORAGE_KEY+"_backup",payload);
   }catch(e){console.error(e);}
-  if(cloudSyncConfigured) cloudSaveData();
+  if(cloudSyncConfigured){
+    cloudSaveData();
+  }
 }
 
 const fields=["project","examDate","applications","scheduled","present","states","cities","centers","ird","cityLive","admitCard","qp","status","request","delivery","content","objectionLive","objectionClose","result","remark"];
@@ -966,36 +968,97 @@ function loadData(){
 // This prevents a refresh from rendering an empty table before the tracker
 // controls and authentication state are available.
 let trackerInitialized=false;
-function initializeTracker(){
+async function initializeTracker(){
     if(trackerInitialized) return;
     trackerInitialized=true;
 
     const hasSavedData=loadData();
+
     if(!hasSavedData){
         exams.forEach(function(exam){
             if(exam && exam.examDate) calculateAutoDates(exam);
         });
-        // Create the initial storage only when no previous data exists.
         localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+        localStorage.setItem(STORAGE_KEY+"_backup",JSON.stringify(exams));
     }
 
-    // Remove any accidental null/invalid rows from old versions.
-    exams=Array.isArray(exams)?exams.filter(e=>e && typeof e==='object'):[];
+    // Remove accidental null/invalid rows from old versions.
+    exams=Array.isArray(exams)
+      ? exams.filter(e=>e && typeof e==="object")
+      : [];
+
     renderTable();
-    if(cloudSyncConfigured){
-      cloudLoadData().then(function(remote){
-        if(remote && Array.isArray(remote)){
-          exams=remote.filter(e=>e && typeof e==='object');
-          exams.forEach(function(exam){if(exam && exam.examDate)calculateAutoDates(exam);});
-          localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
-          localStorage.setItem(STORAGE_KEY+"_backup",JSON.stringify(exams));
-          renderTable();
-          flash("Cloud data loaded successfully");
-        }
-      });
-    } else {
+
+    if(!cloudSyncConfigured){
       cloudStatus("☁ Local mode",true);
+      return;
     }
+
+    // Cloud is the shared source of truth.
+    // If cloud already contains data, load it into this browser.
+    // If cloud is empty but this browser has existing data, upload that
+    // local data instead of wiping it with an empty cloud dataset.
+    const localSnapshot=exams.slice();
+
+    const remote=await cloudLoadData();
+
+    if(remote && Array.isArray(remote)){
+
+      if(remote.length > 0){
+        exams=remote.filter(e=>e && typeof e==="object");
+
+        exams.forEach(function(exam){
+          if(exam && exam.examDate)calculateAutoDates(exam);
+        });
+
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(exams));
+        localStorage.setItem(STORAGE_KEY+"_backup",JSON.stringify(exams));
+
+        renderTable();
+        flash("Cloud data loaded successfully");
+        cloudStatus("☁ Cloud synced",true);
+
+      }else if(localSnapshot.length > 0){
+
+        // First device with existing local data becomes the initial
+        // cloud source instead of being replaced by an empty cloud array.
+        cloudStatus("☁ Initial cloud upload…",true);
+
+        const saved=await cloudSaveData();
+
+        if(saved){
+          flash("Local data uploaded to cloud successfully");
+        }else{
+          cloudStatus("☁ Cloud upload failed",false);
+        }
+
+      }else{
+        cloudStatus("☁ Cloud connected — no data",true);
+      }
+
+    }else{
+      cloudStatus("☁ Cloud read failed — local data kept",false);
+    }
+}
+
+async function uploadCurrentDataToCloud(){
+  if(!cloudSyncConfigured){
+    alert("Cloud sync is not configured.");
+    return;
+  }
+
+  if(!Array.isArray(exams)){
+    alert("No valid tracker data is available.");
+    return;
+  }
+
+  const ok=await cloudSaveData();
+
+  if(ok){
+    flash("Current tracker data saved to cloud");
+  }else{
+    alert("Cloud save failed. Please check the Cloud status.");
+  }
 }
 
 function saveData(){
