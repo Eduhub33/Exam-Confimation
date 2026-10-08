@@ -925,31 +925,18 @@ async function cloudLoadData(){
   });
 }
 
-async function cloudSaveData(){
+let cloudSaveRunningPromise=null;
+let cloudSaveQueuedSnapshot=null;
+let cloudSaveTimer=null;
+
+async function performCloudSave(snapshot){
   if(!cloudSyncConfigured)return false;
   ensureAuditIds();
-  if(cloudSyncBusy)return false;
-
-  cloudSyncBusy=true;
 
   try{
     cloudStatus("☁ Saving…",true);
 
-    /*
-      IMPORTANT:
-      Do not use Apps Script HtmlService/postMessage for SAVE.
-      The Web App is reachable and the normal JSON GET works, but
-      cross-origin HtmlService iframe responses are not reliable in
-      the GitHub Pages browser context.
-
-      We therefore:
-      1. POST the data through a hidden form iframe.
-      2. Wait briefly for the Apps Script write to complete.
-      3. Verify the write through JSONP GET.
-    */
-
     const iframeName="cloudPostFrame_"+Date.now()+"_"+Math.floor(Math.random()*100000);
-
     const iframe=document.createElement("iframe");
     iframe.name=iframeName;
     iframe.style.display="none";
@@ -974,7 +961,7 @@ async function cloudSaveData(){
 
     const dataInput=document.createElement("textarea");
     dataInput.name="data";
-    dataInput.value=JSON.stringify(exams);
+    dataInput.value=snapshot;
     dataInput.style.display="none";
 
     form.appendChild(tokenInput);
@@ -982,73 +969,124 @@ async function cloudSaveData(){
     form.appendChild(dataInput);
     document.body.appendChild(form);
 
+    /*
+      The POST response itself is deliberately ignored. Apps Script may
+      return an HtmlService page through a cross-origin iframe, and that
+      response is not a reliable browser signal on GitHub Pages.
+    */
     await new Promise(function(resolve){
       let done=false;
-
       function complete(){
         if(done)return;
         done=true;
         setTimeout(function(){
-          try{form.remove();}catch(_){}
-          try{iframe.remove();}catch(_){}
+          try{form.remove();}catch(_){ }
+          try{iframe.remove();}catch(_){ }
         },500);
         resolve();
       }
-
       iframe.addEventListener("load",complete,{once:true});
-
-      /* Fallback in case the browser does not fire iframe load. */
-      setTimeout(complete,10000);
-
+      setTimeout(complete,12000);
       form.submit();
     });
 
     /*
-      Give Apps Script a short moment to finish PropertiesService writes,
-      then verify the exact data through the working JSONP GET endpoint.
+      Verify by reading the server repeatedly. This removes the previous
+      fixed 1.2/1.5 second race condition.
     */
-    await new Promise(function(resolve){setTimeout(resolve,1500);});
+    const expected=snapshot;
+    let lastRemote=null;
 
-    const verified=await cloudLoadData();
-
-    if(verified && Array.isArray(verified)){
-      /*
-        Verify that the cloud response contains the records we just sent.
-        Comparing the serialized payload avoids falsely reporting success
-        if the POST was rejected or another stale dataset was returned.
-      */
-      const localJson=JSON.stringify(exams);
-      const remoteJson=JSON.stringify(verified);
-
-      if(localJson===remoteJson){
-        try{
-          localStorage.setItem(STORAGE_KEY,localJson);
-          localStorage.setItem(STORAGE_KEY+"_backup",localJson);
-        }catch(_){}
-
-        renderTable();
-        cloudStatus("☁ Saved & verified • "+new Date().toLocaleString(),true);
-        return true;
+    for(let attempt=1;attempt<=5;attempt++){
+      await new Promise(function(resolve){setTimeout(resolve,attempt===1?800:1500);});
+      const remote=await cloudLoadData();
+      if(Array.isArray(remote)){
+        lastRemote=remote;
+        if(JSON.stringify(remote)===expected){
+          try{
+            localStorage.setItem(STORAGE_KEY,expected);
+            localStorage.setItem(STORAGE_KEY+"_backup",expected);
+          }catch(_){ }
+          renderTable();
+          cloudStatus("☁ Saved & verified • "+new Date().toLocaleString(),true);
+          return true;
+        }
       }
-
-      console.error("Cloud verification mismatch",{
-        localCount:exams.length,
-        remoteCount:verified.length
-      });
-      cloudStatus("☁ Save sent — verification mismatch",false);
-      return false;
     }
 
-    cloudStatus("☁ Save sent — verification failed",false);
+    console.error("Cloud verification mismatch/timeout",{
+      expectedBytes:expected.length,
+      remoteRecords:Array.isArray(lastRemote)?lastRemote.length:null
+    });
+    cloudStatus("☁ Cloud save could not be verified",false);
     return false;
 
   }catch(e){
     console.error("Cloud save error",e);
     cloudStatus("☁ Cloud save failed — "+(e && e.message ? e.message : String(e)),false);
     return false;
-  }finally{
-    cloudSyncBusy=false;
   }
+}
+
+async function cloudSaveData(){
+  if(!cloudSyncConfigured)return false;
+  ensureAuditIds();
+
+  const snapshot=JSON.stringify(exams);
+  cloudSaveQueuedSnapshot=snapshot;
+
+  if(cloudSaveRunningPromise){
+    await cloudSaveRunningPromise;
+
+    /*
+      If another change arrived while the previous save was running,
+      immediately save the newest snapshot instead of falsely reporting
+      the older save as the final result.
+    */
+    if(cloudSaveQueuedSnapshot && cloudSaveQueuedSnapshot!==snapshot){
+      return cloudSaveData();
+    }
+    return true;
+  }
+
+  cloudSaveQueuedSnapshot=null;
+  cloudSaveRunningPromise=performCloudSave(snapshot);
+
+  let result=false;
+  try{
+    result=await cloudSaveRunningPromise;
+  }finally{
+    cloudSaveRunningPromise=null;
+  }
+
+  /* A newer snapshot may have been queued while this save was running. */
+  if(cloudSaveQueuedSnapshot && cloudSaveQueuedSnapshot!==snapshot){
+    return cloudSaveData();
+  }
+
+  return result;
+}
+
+function scheduleCloudSave(){
+  if(!cloudSyncConfigured)return;
+  ensureAuditIds();
+  cloudSaveQueuedSnapshot=JSON.stringify(exams);
+
+  if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
+
+  cloudSaveTimer=setTimeout(function(){
+    cloudSaveTimer=null;
+    if(cloudSaveRunningPromise){
+      /* The current request will be followed by the newest queued snapshot. */
+      cloudSaveRunningPromise.then(function(){
+        if(cloudSaveQueuedSnapshot){
+          cloudSaveData().catch(function(err){console.error(err);});
+        }
+      });
+    }else{
+      cloudSaveData().catch(function(err){console.error(err);});
+    }
+  },800);
 }
 
 
@@ -1083,7 +1121,7 @@ function persistData(){
     localStorage.setItem(STORAGE_KEY+"_backup",payload);
   }catch(e){console.error(e);}
   if(cloudSyncConfigured){
-    cloudSaveData();
+    scheduleCloudSave();
   }
 }
 
