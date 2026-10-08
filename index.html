@@ -868,42 +868,13 @@ async function cloudLoadData(){
   return new Promise(function(resolve){
     cloudStatus("☁ Syncing…",true);
 
-    const iframeName="cloudReadFrame_"+Date.now()+"_"+Math.floor(Math.random()*100000);
-    const iframe=document.createElement("iframe");
-    iframe.name=iframeName;
-    iframe.style.display="none";
-    document.body.appendChild(iframe);
-
-    const form=document.createElement("form");
-    form.method="GET";
-    form.action=CLOUD_SYNC_URL;
-    form.target=iframeName;
-    form.style.display="none";
-
-    const tokenInput=document.createElement("input");
-    tokenInput.type="hidden";
-    tokenInput.name="token";
-    tokenInput.value=CLOUD_SYNC_TOKEN;
-
-    const transportInput=document.createElement("input");
-    transportInput.type="hidden";
-    transportInput.name="transport";
-    transportInput.value="iframe";
-
-    form.appendChild(tokenInput);
-    form.appendChild(transportInput);
-    document.body.appendChild(form);
-
+    const callbackName="__examTrackerCloud_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+    const script=document.createElement("script");
     let finished=false;
-    let timeoutId=null;
 
     function cleanup(){
-      window.removeEventListener("message",onMessage);
-      if(timeoutId)clearTimeout(timeoutId);
-      setTimeout(function(){
-        try{form.remove();}catch(_){}
-        try{iframe.remove();}catch(_){}
-      },300);
+      try{delete window[callbackName];}catch(_){}
+      if(script.parentNode)script.parentNode.removeChild(script);
     }
 
     function finish(result){
@@ -915,7 +886,7 @@ async function cloudLoadData(){
         cloudStatus("☁ Cloud synced",true);
         resolve(result.data);
       }else{
-        console.error("Cloud read response:",result);
+        console.error("Cloud load response:",result);
         cloudStatus(
           "☁ Cloud read failed"+(result && result.message ? " — "+result.message : ""),
           false
@@ -924,19 +895,33 @@ async function cloudLoadData(){
       }
     }
 
-    function onMessage(event){
-      const result=event && event.data;
-      if(!result || result.type!=="EXAM_TRACKER_CLOUD_DATA")return;
-      finish(result);
-    }
+    window[callbackName]=finish;
 
-    window.addEventListener("message",onMessage);
+    script.onerror=function(){
+      if(finished)return;
+      finished=true;
+      cleanup();
+      console.error("Cloud JSONP read failed");
+      cloudStatus("☁ Cloud read failed",false);
+      resolve(null);
+    };
 
-    timeoutId=setTimeout(function(){
-      finish({ok:false,message:"Cloud read response timeout"});
+    script.src=CLOUD_SYNC_URL
+      +"?token="+encodeURIComponent(CLOUD_SYNC_TOKEN)
+      +"&callback="+encodeURIComponent(callbackName)
+      +"&_="+Date.now();
+
+    document.head.appendChild(script);
+
+    setTimeout(function(){
+      if(!finished){
+        finished=true;
+        cleanup();
+        console.error("Cloud JSONP read timeout");
+        cloudStatus("☁ Cloud read timeout",false);
+        resolve(null);
+      }
     },15000);
-
-    form.submit();
   });
 }
 
@@ -950,7 +935,20 @@ async function cloudSaveData(){
   try{
     cloudStatus("☁ Saving…",true);
 
-    const iframeName="cloudSaveFrame_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+    /*
+      IMPORTANT:
+      Do not use Apps Script HtmlService/postMessage for SAVE.
+      The Web App is reachable and the normal JSON GET works, but
+      cross-origin HtmlService iframe responses are not reliable in
+      the GitHub Pages browser context.
+
+      We therefore:
+      1. POST the data through a hidden form iframe.
+      2. Wait briefly for the Apps Script write to complete.
+      3. Verify the write through JSONP GET.
+    */
+
+    const iframeName="cloudPostFrame_"+Date.now()+"_"+Math.floor(Math.random()*100000);
 
     const iframe=document.createElement("iframe");
     iframe.name=iframeName;
@@ -969,11 +967,6 @@ async function cloudSaveData(){
     tokenInput.name="token";
     tokenInput.value=CLOUD_SYNC_TOKEN;
 
-    const transportInput=document.createElement("input");
-    transportInput.type="hidden";
-    transportInput.name="transport";
-    transportInput.value="iframe";
-
     const actorInput=document.createElement("input");
     actorInput.type="hidden";
     actorInput.name="actor";
@@ -985,70 +978,79 @@ async function cloudSaveData(){
     dataInput.style.display="none";
 
     form.appendChild(tokenInput);
-    form.appendChild(transportInput);
     form.appendChild(actorInput);
     form.appendChild(dataInput);
     document.body.appendChild(form);
 
-    const saved = await new Promise(function(resolve){
+    await new Promise(function(resolve){
       let done=false;
-      let timeoutId=null;
 
-      function cleanup(){
-        window.removeEventListener("message",onMessage);
-        if(timeoutId)clearTimeout(timeoutId);
+      function complete(){
+        if(done)return;
+        done=true;
         setTimeout(function(){
           try{form.remove();}catch(_){}
           try{iframe.remove();}catch(_){}
         },500);
+        resolve();
       }
 
-      function finish(ok,message,updatedAt){
-        if(done)return;
-        done=true;
-        cleanup();
+      iframe.addEventListener("load",complete,{once:true});
 
-        if(ok){
-          try{
-            const payload=JSON.stringify(exams);
-            localStorage.setItem(STORAGE_KEY,payload);
-            localStorage.setItem(STORAGE_KEY+"_backup",payload);
-          }catch(_){}
-          renderTable();
-          cloudStatus("☁ Saved to cloud • "+(updatedAt ? new Date(updatedAt).toLocaleString() : new Date().toLocaleString()),true);
-          resolve(true);
-        }else{
-          console.error("Cloud save response:",message);
-          cloudStatus("☁ Cloud save failed"+(message ? " — "+message : ""),false);
-          resolve(false);
-        }
-      }
-
-      function onMessage(event){
-        const result=event && event.data;
-        if(!result || result.type!=="EXAM_TRACKER_CLOUD_SAVE")return;
-        finish(!!result.ok,result.message || "",result.updatedAt || "");
-      }
-
-      window.addEventListener("message",onMessage);
-
-      timeoutId=setTimeout(function(){
-        finish(false,"Save response timeout","");
-      },15000);
+      /* Fallback in case the browser does not fire iframe load. */
+      setTimeout(complete,10000);
 
       form.submit();
     });
 
-    return saved;
+    /*
+      Give Apps Script a short moment to finish PropertiesService writes,
+      then verify the exact data through the working JSONP GET endpoint.
+    */
+    await new Promise(function(resolve){setTimeout(resolve,1500);});
+
+    const verified=await cloudLoadData();
+
+    if(verified && Array.isArray(verified)){
+      /*
+        Verify that the cloud response contains the records we just sent.
+        Comparing the serialized payload avoids falsely reporting success
+        if the POST was rejected or another stale dataset was returned.
+      */
+      const localJson=JSON.stringify(exams);
+      const remoteJson=JSON.stringify(verified);
+
+      if(localJson===remoteJson){
+        try{
+          localStorage.setItem(STORAGE_KEY,localJson);
+          localStorage.setItem(STORAGE_KEY+"_backup",localJson);
+        }catch(_){}
+
+        renderTable();
+        cloudStatus("☁ Saved & verified • "+new Date().toLocaleString(),true);
+        return true;
+      }
+
+      console.error("Cloud verification mismatch",{
+        localCount:exams.length,
+        remoteCount:verified.length
+      });
+      cloudStatus("☁ Save sent — verification mismatch",false);
+      return false;
+    }
+
+    cloudStatus("☁ Save sent — verification failed",false);
+    return false;
 
   }catch(e){
     console.error("Cloud save error",e);
-    cloudStatus("☁ Cloud save failed",false);
+    cloudStatus("☁ Cloud save failed — "+(e && e.message ? e.message : String(e)),false);
     return false;
   }finally{
     cloudSyncBusy=false;
   }
 }
+
 
 async function forceCloudSync(){
   if(!cloudSyncConfigured){
