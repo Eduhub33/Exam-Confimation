@@ -950,6 +950,11 @@ async function cloudSaveData(){
     tokenInput.name="token";
     tokenInput.value=CLOUD_SYNC_TOKEN;
 
+    const transportInput=document.createElement("input");
+    transportInput.type="hidden";
+    transportInput.name="transport";
+    transportInput.value="iframe";
+
     const actorInput=document.createElement("input");
     actorInput.type="hidden";
     actorInput.name="actor";
@@ -961,49 +966,61 @@ async function cloudSaveData(){
     dataInput.style.display="none";
 
     form.appendChild(tokenInput);
+    form.appendChild(transportInput);
     form.appendChild(actorInput);
     form.appendChild(dataInput);
     document.body.appendChild(form);
 
-    await new Promise(function(resolve){
+    const saved = await new Promise(function(resolve){
       let done=false;
+      let timeoutId=null;
 
-      function complete(){
-        if(done)return;
-        done=true;
+      function cleanup(){
+        window.removeEventListener("message",onMessage);
+        if(timeoutId)clearTimeout(timeoutId);
         setTimeout(function(){
           try{form.remove();}catch(_){}
           try{iframe.remove();}catch(_){}
-        },1000);
-        resolve();
+        },500);
       }
 
-      iframe.addEventListener("load",complete,{once:true});
-      setTimeout(complete,7000);
+      function finish(ok,message,updatedAt){
+        if(done)return;
+        done=true;
+        cleanup();
+
+        if(ok){
+          try{
+            const payload=JSON.stringify(exams);
+            localStorage.setItem(STORAGE_KEY,payload);
+            localStorage.setItem(STORAGE_KEY+"_backup",payload);
+          }catch(_){}
+          renderTable();
+          cloudStatus("☁ Saved to cloud • "+(updatedAt ? new Date(updatedAt).toLocaleString() : new Date().toLocaleString()),true);
+          resolve(true);
+        }else{
+          console.error("Cloud save response:",message);
+          cloudStatus("☁ Cloud save failed"+(message ? " — "+message : ""),false);
+          resolve(false);
+        }
+      }
+
+      function onMessage(event){
+        const result=event && event.data;
+        if(!result || result.type!=="EXAM_TRACKER_CLOUD_SAVE")return;
+        finish(!!result.ok,result.message || "",result.updatedAt || "");
+      }
+
+      window.addEventListener("message",onMessage);
+
+      timeoutId=setTimeout(function(){
+        finish(false,"Save response timeout","");
+      },15000);
 
       form.submit();
     });
 
-    // Allow Apps Script to finish writing before the verification read.
-    await new Promise(function(resolve){setTimeout(resolve,1200)});
-
-    const verified=await cloudLoadData();
-
-    if(verified && Array.isArray(verified)){
-      exams=verified.filter(e=>e && typeof e==="object");
-      ensureAuditIds();
-      try{
-        const payload=JSON.stringify(exams);
-        localStorage.setItem(STORAGE_KEY,payload);
-        localStorage.setItem(STORAGE_KEY+"_backup",payload);
-      }catch(_){}
-      renderTable();
-      cloudStatus("☁ Saved & verified • "+new Date().toLocaleString(),true);
-      return true;
-    }
-
-    cloudStatus("☁ Save sent — verification failed",false);
-    return false;
+    return saved;
 
   }catch(e){
     console.error("Cloud save error",e);
@@ -1226,7 +1243,7 @@ async function uploadCurrentDataToCloud(){
   }
 }
 
-function saveData(){
+async function saveData(){
  ensureAuditIds();
  const u=currentUser();
  if(u && u.role!=="admin"){
@@ -1237,7 +1254,6 @@ function saveData(){
  try{
    const payload=JSON.stringify(exams);
    localStorage.setItem(STORAGE_KEY,payload);
-   // Secondary browser-local mirror for recovery if the main key is unavailable.
    localStorage.setItem(STORAGE_KEY+"_backup",payload);
  }catch(e){
    alert("Unable to save tracker data in this browser. Please check browser storage permissions.");
@@ -1245,7 +1261,15 @@ function saveData(){
    return;
  }
  renderTable();
- if(cloudSyncConfigured) cloudSaveData();
+
+ if(cloudSyncConfigured){
+   const ok=await cloudSaveData();
+   if(!ok){
+     alert("Local data is saved in this browser, but the cloud save failed. Please check the Cloud status.");
+     return;
+   }
+ }
+
  flash(u && u.role!=="admin" ? "Data saved. Your project is now locked." : "Data saved successfully");
 }
 
