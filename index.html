@@ -864,16 +864,46 @@ async function showCloudChangeLog(){
 
 async function cloudLoadData(){
   if(!cloudSyncConfigured)return null;
+
   return new Promise(function(resolve){
     cloudStatus("☁ Syncing…",true);
 
-    const callbackName="__examTrackerCloud_"+Date.now()+"_"+Math.floor(Math.random()*100000);
-    const script=document.createElement("script");
+    const iframeName="cloudReadFrame_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+    const iframe=document.createElement("iframe");
+    iframe.name=iframeName;
+    iframe.style.display="none";
+    document.body.appendChild(iframe);
+
+    const form=document.createElement("form");
+    form.method="GET";
+    form.action=CLOUD_SYNC_URL;
+    form.target=iframeName;
+    form.style.display="none";
+
+    const tokenInput=document.createElement("input");
+    tokenInput.type="hidden";
+    tokenInput.name="token";
+    tokenInput.value=CLOUD_SYNC_TOKEN;
+
+    const transportInput=document.createElement("input");
+    transportInput.type="hidden";
+    transportInput.name="transport";
+    transportInput.value="iframe";
+
+    form.appendChild(tokenInput);
+    form.appendChild(transportInput);
+    document.body.appendChild(form);
+
     let finished=false;
+    let timeoutId=null;
 
     function cleanup(){
-      try{delete window[callbackName];}catch(_){}
-      if(script.parentNode)script.parentNode.removeChild(script);
+      window.removeEventListener("message",onMessage);
+      if(timeoutId)clearTimeout(timeoutId);
+      setTimeout(function(){
+        try{form.remove();}catch(_){}
+        try{iframe.remove();}catch(_){}
+      },300);
     }
 
     function finish(result){
@@ -885,39 +915,28 @@ async function cloudLoadData(){
         cloudStatus("☁ Cloud synced",true);
         resolve(result.data);
       }else{
-        console.error("Cloud load response:",result);
-        cloudStatus("☁ Cloud read failed",false);
+        console.error("Cloud read response:",result);
+        cloudStatus(
+          "☁ Cloud read failed"+(result && result.message ? " — "+result.message : ""),
+          false
+        );
         resolve(null);
       }
     }
 
-    window[callbackName]=finish;
+    function onMessage(event){
+      const result=event && event.data;
+      if(!result || result.type!=="EXAM_TRACKER_CLOUD_DATA")return;
+      finish(result);
+    }
 
-    script.onerror=function(){
-      if(finished)return;
-      finished=true;
-      cleanup();
-      console.error("Cloud JSONP load failed");
-      cloudStatus("☁ Cloud read failed",false);
-      resolve(null);
-    };
+    window.addEventListener("message",onMessage);
 
-    script.src=CLOUD_SYNC_URL
-      +"?token="+encodeURIComponent(CLOUD_SYNC_TOKEN)
-      +"&callback="+encodeURIComponent(callbackName)
-      +"&_="+Date.now();
-
-    document.head.appendChild(script);
-
-    setTimeout(function(){
-      if(!finished){
-        finished=true;
-        cleanup();
-        console.error("Cloud read timeout");
-        cloudStatus("☁ Cloud read timeout",false);
-        resolve(null);
-      }
+    timeoutId=setTimeout(function(){
+      finish({ok:false,message:"Cloud read response timeout"});
     },15000);
+
+    form.submit();
   });
 }
 
