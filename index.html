@@ -660,7 +660,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <button class="btn primary" id="analysisBtn" onclick="openAnalysis()">📊 Overall Analysis</button>
 
 <button class="btn-add" onclick="addProject()">+ Add Project</button>
-<button class="btn-save" onclick="saveData()">Save</button><button class="btn" onclick="forceCloudSync()" title="Reload data from Google Cloud">☁ Sync Now</button><span id="cloudStatus" class="cloud-status" title="After Google Apps Script deployment, replace CLOUD_SYNC_URL in the HTML with the /exec URL.">☁ Cloud not connected</span>
+<button class="btn-save" onclick="saveData()">Save</button><button class="btn" onclick="forceCloudSync()" title="Reload data from Google Cloud">☁ Sync Now</button><button class="btn" onclick="showCloudChangeLog()" title="View cloud database change history">📋 Change Log</button><span id="cloudStatus" class="cloud-status" title="Cloud database status">☁ Cloud not connected</span>
 <button class="btn-excel" onclick="exportExcel()">Export Excel</button>
 <button class="btn-import" onclick="importExcel()">Import Excel</button>
 <button class="btn-template" onclick="downloadTemplate()">Excel Template</button>
@@ -692,7 +692,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <tbody id="tableBody"></tbody>
 </table>
 </div>
-<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.csv</b> in offline mode. For legacy <b>.xls</b>, save it as <b>.xlsx</b> first.</div><div class="excel-note">🔐 Normal User: Add New Project → Fill Data → Save → Project Locked &nbsp; | &nbsp; 📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
+<div class="excel-note">Excel Import supports <b>.xlsx</b> and <b>.csv</b> in offline mode. For legacy <b>.xls</b>, save it as <b>.xlsx</b> first.</div><div class="excel-note">📋 Cloud Change Log records who changed what and when (add / edit / delete).</div><div class="excel-note">🔐 Normal User: Add New Project → Fill Data → Save → Project Locked &nbsp; | &nbsp; 📅 Multiple Exam Dates &nbsp; | &nbsp; City Live auto = Exam Date − 15 days &nbsp; | &nbsp; Admit Card auto = Exam Date − 3 days &nbsp; | &nbsp; ↕ Header fixed &nbsp; | &nbsp; ↔ Sl. No. + Project fixed</div>
 </div>
 <div id="flash" class="flash"></div>
 
@@ -716,6 +716,152 @@ function cloudStatus(message,ok=true){
   el.textContent=message;
   el.className="cloud-status "+(ok?"ok":"bad");
 }
+
+function getAuditActor(){
+  try{
+    const u=currentUser();
+    if(u){
+      return String(u.username || u.name || u.email || u.role || "User");
+    }
+  }catch(_){}
+  return "Unknown User";
+}
+
+function ensureAuditIds(){
+  if(!Array.isArray(exams))return;
+  exams.forEach(function(exam){
+    if(!exam || typeof exam!=="object")return;
+    if(!exam._auditId){
+      const seed=(exam.project||"PROJECT")+"|"+(exam.examDate||"")+"|"+Date.now()+"|"+Math.random();
+      let id="";
+      try{
+        id=(crypto && crypto.randomUUID) ? crypto.randomUUID() : "";
+      }catch(_){}
+      if(!id){
+        id=seed.replace(/[^A-Za-z0-9_-]/g,"_");
+      }
+      exam._auditId=id;
+    }
+  });
+}
+
+async function cloudLoadChangeLog(){
+  if(!cloudSyncConfigured)return [];
+  return new Promise(function(resolve){
+    const callbackName="__examTrackerAudit_"+Date.now()+"_"+Math.floor(Math.random()*100000);
+    const script=document.createElement("script");
+    let finished=false;
+
+    function cleanup(){
+      try{delete window[callbackName];}catch(_){}
+      if(script.parentNode)script.parentNode.removeChild(script);
+    }
+
+    function finish(result){
+      if(finished)return;
+      finished=true;
+      cleanup();
+      if(result && result.ok && Array.isArray(result.logs)){
+        resolve(result.logs);
+      }else{
+        console.error("Cloud audit log response:",result);
+        resolve([]);
+      }
+    }
+
+    window[callbackName]=finish;
+    script.onerror=function(){
+      if(finished)return;
+      finished=true;
+      cleanup();
+      resolve([]);
+    };
+
+    script.src=CLOUD_SYNC_URL
+      +"?token="+encodeURIComponent(CLOUD_SYNC_TOKEN)
+      +"&action=logs"
+      +"&callback="+encodeURIComponent(callbackName)
+      +"&_="+Date.now();
+
+    document.head.appendChild(script);
+
+    setTimeout(function(){
+      if(!finished){
+        finished=true;
+        cleanup();
+        resolve([]);
+      }
+    },15000);
+  });
+}
+
+function escapeAuditHtml(value){
+  return String(value==null?"":value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+async function showCloudChangeLog(){
+  if(!cloudSyncConfigured){
+    alert("Cloud sync is not configured.");
+    return;
+  }
+
+  const logs=await cloudLoadChangeLog();
+
+  if(!logs.length){
+    alert("No cloud database changes have been logged yet.");
+    return;
+  }
+
+  let htmlRows="";
+  logs.slice().reverse().forEach(function(log){
+    const changes=(log.changes||[]).map(function(c){
+      return "<div><b>"+escapeAuditHtml(c.field)+"</b>: "+
+        "<span style='color:#777'>"+escapeAuditHtml(c.oldValue)+"</span> → "+
+        "<span>"+escapeAuditHtml(c.newValue)+"</span></div>";
+    }).join("");
+
+    htmlRows +=
+      "<tr>"+
+      "<td style='padding:7px;border:1px solid #ddd;white-space:nowrap'>"+escapeAuditHtml(log.timestamp)+"</td>"+
+      "<td style='padding:7px;border:1px solid #ddd'>"+escapeAuditHtml(log.actor)+"</td>"+
+      "<td style='padding:7px;border:1px solid #ddd'>"+escapeAuditHtml(log.action)+"</td>"+
+      "<td style='padding:7px;border:1px solid #ddd'>"+escapeAuditHtml(log.project)+"</td>"+
+      "<td style='padding:7px;border:1px solid #ddd;min-width:300px'>"+(changes||"Record added/removed")+"</td>"+
+      "</tr>";
+  });
+
+  const existing=document.getElementById("auditLogOverlay");
+  if(existing)existing.remove();
+
+  const overlay=document.createElement("div");
+  overlay.id="auditLogOverlay";
+  overlay.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;padding:4vh 4vw;overflow:auto;";
+  overlay.innerHTML=
+    "<div style='background:#fff;border-radius:10px;max-width:1400px;margin:auto;padding:18px;box-shadow:0 10px 40px rgba(0,0,0,.25)'>"+
+    "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px'>"+
+    "<h2 style='margin:0'>📋 Cloud Database Change Log</h2>"+
+    "<button onclick='document.getElementById(\"auditLogOverlay\").remove()' style='background:#dc3545;color:#fff'>Close</button>"+
+    "</div>"+
+    "<div style='font-size:12px;color:#666;margin-bottom:10px'>Shows additions, deletions and field-level changes recorded by the cloud database.</div>"+
+    "<div style='overflow:auto;max-height:70vh'>"+
+    "<table style='width:100%;border-collapse:collapse;font-size:12px'>"+
+    "<thead><tr style='background:#222;color:#fff'>"+
+    "<th style='padding:8px;text-align:left'>Time</th>"+
+    "<th style='padding:8px;text-align:left'>User</th>"+
+    "<th style='padding:8px;text-align:left'>Action</th>"+
+    "<th style='padding:8px;text-align:left'>Project</th>"+
+    "<th style='padding:8px;text-align:left'>What Changed</th>"+
+    "</tr></thead><tbody>"+htmlRows+"</tbody></table>"+
+    "</div></div>";
+
+  document.body.appendChild(overlay);
+}
+
 async function cloudLoadData(){
   if(!cloudSyncConfigured)return null;
   return new Promise(function(resolve){
@@ -777,6 +923,7 @@ async function cloudLoadData(){
 
 async function cloudSaveData(){
   if(!cloudSyncConfigured)return false;
+  ensureAuditIds();
   if(cloudSyncBusy)return false;
 
   cloudSyncBusy=true;
@@ -803,12 +950,18 @@ async function cloudSaveData(){
     tokenInput.name="token";
     tokenInput.value=CLOUD_SYNC_TOKEN;
 
+    const actorInput=document.createElement("input");
+    actorInput.type="hidden";
+    actorInput.name="actor";
+    actorInput.value=getAuditActor();
+
     const dataInput=document.createElement("textarea");
     dataInput.name="data";
     dataInput.value=JSON.stringify(exams);
     dataInput.style.display="none";
 
     form.appendChild(tokenInput);
+    form.appendChild(actorInput);
     form.appendChild(dataInput);
     document.body.appendChild(form);
 
@@ -837,7 +990,15 @@ async function cloudSaveData(){
     const verified=await cloudLoadData();
 
     if(verified && Array.isArray(verified)){
-      cloudStatus("☁ Saved & verified",true);
+      exams=verified.filter(e=>e && typeof e==="object");
+      ensureAuditIds();
+      try{
+        const payload=JSON.stringify(exams);
+        localStorage.setItem(STORAGE_KEY,payload);
+        localStorage.setItem(STORAGE_KEY+"_backup",payload);
+      }catch(_){}
+      renderTable();
+      cloudStatus("☁ Saved & verified • "+new Date().toLocaleString(),true);
       return true;
     }
 
@@ -877,6 +1038,7 @@ async function forceCloudSync(){
 }
 
 function persistData(){
+  ensureAuditIds();
   try{
     const payload=JSON.stringify(exams);
     localStorage.setItem(STORAGE_KEY,payload);
@@ -986,6 +1148,7 @@ async function initializeTracker(){
     exams=Array.isArray(exams)
       ? exams.filter(e=>e && typeof e==="object")
       : [];
+    ensureAuditIds();
 
     renderTable();
 
@@ -1006,6 +1169,7 @@ async function initializeTracker(){
 
       if(remote.length > 0){
         exams=remote.filter(e=>e && typeof e==="object");
+        ensureAuditIds();
 
         exams.forEach(function(exam){
           if(exam && exam.examDate)calculateAutoDates(exam);
@@ -1042,6 +1206,7 @@ async function initializeTracker(){
 }
 
 async function uploadCurrentDataToCloud(){
+  ensureAuditIds();
   if(!cloudSyncConfigured){
     alert("Cloud sync is not configured.");
     return;
@@ -1062,6 +1227,7 @@ async function uploadCurrentDataToCloud(){
 }
 
 function saveData(){
+ ensureAuditIds();
  const u=currentUser();
  if(u && u.role!=="admin"){
    exams.forEach(exam=>{
