@@ -2446,16 +2446,292 @@ document.addEventListener("DOMContentLoaded",()=>{
   renderTable();
 });
 </script>
-<script id="cloud-sync-patch">
-/* ======================================================
-   SYNC PATCH - paste inside a new <script> ... </script>
-   just before </body>, AFTER all existing scripts.
+just before </body>, AFTER all existing scripts.
    Overrides the old cloud functions with:
    - per-record merge (no more whole-array overwrite)
    - delete tracking
    - auto refresh every 15s + when tab regains focus
    - cloud-synced user accounts
 ====================================================== */
+(function () {
+  var SYNC_KEY = STORAGE_KEY + "_synced";
+  var DEL_KEY = STORAGE_KEY + "_pendingDeletes";
+  var syncedHash = {};
+  var pendingDeletes = new Set();
+  var cloudVersion = 0;
+  var needsRender = false;
+
+  try { syncedHash = JSON.parse(localStorage.getItem(SYNC_KEY) || "{}"); } catch (_) {}
+  try { pendingDeletes = new Set(JSON.parse(localStorage.getItem(DEL_KEY) || "[]")); } catch (_) {}
+
+  function persistMeta() {
+    try {
+      localStorage.setItem(SYNC_KEY, JSON.stringify(syncedHash));
+      localStorage.setItem(DEL_KEY, JSON.stringify(Array.from(pendingDeletes)));
+    } catch (_) {}
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function recHash(e) {
+    return JSON.stringify(Object.keys(e).filter(function (k) { return k !== "_updatedAt"; })
+      .sort().map(function (k) { return [k, e[k]]; }));
+  }
+  function userIsEditing() {
+    var a = document.activeElement;
+    var inTable = a && a.closest && a.closest("#tableBody") && /INPUT|TEXTAREA|SELECT/.test(a.tagName);
+    return !!inTable || !!document.querySelector(".multi-date-popup.open");
+  }
+  function safeRender() {
+    if (userIsEditing()) { needsRender = true; return; }
+    needsRender = false;
+    renderTable();
+  }
+  document.addEventListener("focusout", function () {
+    setTimeout(function () { if (needsRender && !userIsEditing()) { needsRender = false; renderTable(); } }, 300);
+  });
+
+  /* ---------- transport ---------- */
+  function jsonp(params, timeout) {
+    return new Promise(function (resolve) {
+      var cb = "__sync_" + Date.now() + "_" + Math.floor(Math.random() * 1e5);
+      var s = document.createElement("script");
+      var done = false;
+      function fin(r) {
+        if (done) return;
+        done = true;
+        try { delete window[cb]; } catch (_) {}
+        if (s.parentNode) s.parentNode.removeChild(s);
+        resolve(r);
+      }
+      window[cb] = fin;
+      s.onerror = function () { fin(null); };
+      var q = new URLSearchParams(Object.assign({ token: CLOUD_SYNC_TOKEN, callback: cb, _: Date.now() }, params));
+      s.src = CLOUD_SYNC_URL + "?" + q.toString();
+      document.head.appendChild(s);
+      setTimeout(function () { fin(null); }, timeout || 15000);
+    });
+  }
+
+  function postForm(fields) {
+    return new Promise(function (resolve) {
+      var name = "cloudPostFrame_" + Date.now() + "_" + Math.floor(Math.random() * 1e5);
+      var f = document.createElement("iframe");
+      f.name = name; f.style.display = "none";
+      document.body.appendChild(f);
+      var form = document.createElement("form");
+      form.method = "POST"; form.action = CLOUD_SYNC_URL; form.target = name; form.style.display = "none";
+      Object.keys(fields).forEach(function (k) {
+        var t = document.createElement("textarea");
+        t.name = k; t.value = fields[k]; form.appendChild(t);
+      });
+      document.body.appendChild(form);
+      var done = false;
+      function end() {
+        if (done) return;
+        done = true;
+        setTimeout(function () { try { form.remove(); } catch (_) {} try { f.remove(); } catch (_) {} }, 500);
+        resolve();
+      }
+      form.submit();
+      f.addEventListener("load", end, { once: true });
+      setTimeout(end, 12000);
+    });
+  }
+
+  /* ---------- change tracking ---------- */
+  function stampChanges() {
+    var now = Date.now(), ids = {};
+    exams.forEach(function (e) {
+      if (!e || !e._auditId) return;
+      ids[e._auditId] = 1;
+      if (syncedHash[e._auditId] !== recHash(e)) e._updatedAt = now;
+    });
+    Object.keys(syncedHash).forEach(function (id) { if (!ids[id]) pendingDeletes.add(id); });
+    persistMeta();
+  }
+
+  /* ---------- merge remote into local ---------- */
+  function adoptRemote(remote, version) {
+    remote = remote.filter(function (e) { return e && typeof e === "object" && e._auditId; });
+    remote.forEach(function (e) { if (e.examDate) calculateAutoDates(e); });
+
+    var remoteById = new Map(remote.map(function (r) { return [r._auditId, r]; }));
+    var localById = new Map(exams.filter(function (e) { return e && e._auditId; })
+      .map(function (e) { return [e._auditId, e]; }));
+
+    var merged = remote.map(function (r) {
+      var l = localById.get(r._auditId);
+      var known = l && syncedHash[l._auditId] !== undefined;
+      if (l && known && syncedHash[l._auditId] !== recHash(l)) return l; // unsynced local edit wins
+      return r;
+    });
+    exams.forEach(function (l) {
+      if (!l || !l._auditId || remoteById.has(l._auditId)) return;
+      if (syncedHash[l._auditId] === undefined) merged.push(l); // brand-new local record
+      // else: it was synced before and is gone from the server => deleted elsewhere
+    });
+    merged = merged.filter(function (e) { return !pendingDeletes.has(e._auditId); });
+
+    var newHash = {};
+    merged.forEach(function (e) {
+      if (remoteById.get(e._auditId) === e) newHash[e._auditId] = recHash(e);
+      else if (syncedHash[e._auditId] !== undefined) newHash[e._auditId] = syncedHash[e._auditId];
+    });
+    syncedHash = newHash;
+    exams = merged;
+    if (version) cloudVersion = version;
+    try {
+      var payload = JSON.stringify(exams);
+      localStorage.setItem(STORAGE_KEY, payload);
+      localStorage.setItem(STORAGE_KEY + "_backup", payload);
+    } catch (_) {}
+    persistMeta();
+  }
+
+  /* ---------- overrides of the old functions ---------- */
+  window.cloudLoadData = async function () {
+    if (!cloudSyncConfigured) return null;
+    cloudStatus("☁ Syncing…", true);
+    var r = await jsonp({ action: "get" });
+    if (r && r.ok && Array.isArray(r.data)) {
+      window.__lastCloudVersion = r.version || 0;
+      cloudStatus("☁ Cloud synced • " + new Date().toLocaleTimeString(), true);
+      return r.data;
+    }
+    cloudStatus("☁ Cloud read failed" + (r && r.message ? " — " + r.message : ""), false);
+    return null;
+  };
+
+  async function pullFromCloud() {
+    var remote = await window.cloudLoadData();
+    if (!remote) return false;
+    var version = window.__lastCloudVersion || 0;
+    if (remote.length === 0 && exams.length > 0 && Object.keys(syncedHash).length === 0) {
+      await cloudSaveData(); // first upload of existing local data
+      return true;
+    }
+    adoptRemote(remote, version);
+    safeRender();
+    return true;
+  }
+
+  window.performCloudSave = async function () {
+    if (!cloudSyncConfigured) return false;
+    try {
+      ensureAuditIds();
+      stampChanges();
+      var baseVersion = cloudVersion;
+      var sent = exams.map(function (e) { return [e._auditId, e._updatedAt || 0]; });
+      var dels = Array.from(pendingDeletes);
+      cloudStatus("☁ Saving…", true);
+
+      await postForm({
+        token: CLOUD_SYNC_TOKEN,
+        actor: getAuditActor(),
+        data: JSON.stringify(exams),
+        deleted: JSON.stringify(dels)
+      });
+
+      for (var i = 1; i <= 6; i++) {
+        await sleep(i === 1 ? 1000 : 1500);
+        var r = await jsonp({ action: "get" });
+        if (!r || !r.ok || !Array.isArray(r.data)) continue;
+        var m = new Map(r.data.map(function (x) { return [x._auditId, x]; }));
+        var saved = sent.every(function (p) {
+          var s = m.get(p[0]);
+          return !!s && (s._updatedAt || 0) >= p[1];
+        }) && dels.every(function (id) { return !m.has(id); });
+        if (saved) {
+          dels.forEach(function (id) { pendingDeletes.delete(id); });
+          adoptRemote(r.data, r.version);
+          safeRender();
+          cloudStatus("☁ Saved & verified • " + new Date().toLocaleString(), true);
+          return true;
+        }
+      }
+      cloudStatus("☁ Cloud save could not be verified", false);
+      return false;
+    } catch (e) {
+      console.error("Cloud save error", e);
+      cloudStatus("☁ Cloud save failed — " + (e && e.message ? e.message : e), false);
+      return false;
+    }
+  };
+
+  window.forceCloudSync = async function () {
+    if (!cloudSyncConfigured) { alert("Cloud sync is not configured."); return; }
+    var ok = await pullFromCloud();
+    if (ok) flash("Cloud data refreshed successfully");
+    else alert("Unable to read cloud data. Check the Apps Script deployment (access must be 'Anyone') and that the latest version is deployed.");
+  };
+
+  window.initializeTracker = async function () {
+    if (trackerInitialized) return;
+    trackerInitialized = true;
+
+    var hadLocal = loadData();
+    if (!hadLocal) {
+      // never seed sample data into a cloud-synced tracker
+      if (cloudSyncConfigured) exams = [];
+      else exams.forEach(function (e) { if (e && e.examDate) calculateAutoDates(e); });
+    }
+    exams = Array.isArray(exams) ? exams.filter(function (e) { return e && typeof e === "object"; }) : [];
+    ensureAuditIds();
+    renderTable();
+
+    if (!cloudSyncConfigured) { cloudStatus("☁ Local mode", true); return; }
+    var ok = await pullFromCloud();
+    if (!ok) cloudStatus("☁ Cloud read failed — local data kept", false);
+    startPolling();
+  };
+
+  /* ---------- auto refresh ---------- */
+  var polling = false;
+  async function pollOnce() {
+    if (!cloudSyncConfigured || document.hidden || polling) return;
+    if (cloudSaveRunningPromise || cloudSaveTimer) return;
+    polling = true;
+    try {
+      var v = await jsonp({ action: "version" }, 10000);
+      if (!v || !v.ok || v.version === cloudVersion) return;
+      if (userIsEditing()) return; // try again on next tick
+      if (await pullFromCloud()) flash("Updated from cloud");
+    } finally { polling = false; }
+  }
+  function startPolling() {
+    setInterval(pollOnce, 15000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) pollOnce(); });
+    window.addEventListener("focus", pollOnce);
+  }
+
+  /* ---------- users shared across devices ---------- */
+  async function pullUsers() {
+    if (!cloudSyncConfigured) return null;
+    var r = await jsonp({ action: "users" }, 10000);
+    if (r && r.ok && Array.isArray(r.users)) {
+      if (r.users.length) localStorage.setItem(AUTH_KEY, JSON.stringify(r.users));
+      return r.users;
+    }
+    return null;
+  }
+  function pushUsers(users) {
+    if (!cloudSyncConfigured) return;
+    postForm({ token: CLOUD_SYNC_TOKEN, kind: "users", actor: getAuditActor(), data: JSON.stringify(users) });
+  }
+  window.saveUsers = function (x) {
+    localStorage.setItem(AUTH_KEY, JSON.stringify(x));
+    pushUsers(x);
+  };
+  var originalLogin = window.loginUser;
+  window.loginUser = async function () {
+    var serverUsers = await pullUsers();
+    originalLogin();
+    if (isAdmin() && serverUsers && serverUsers.length === 0) pushUsers(getUsers());
+  };
+})();
+
+</script>
+<script id="cloud-sync-patch">
+/* Cloud sync patch: per-record merge, delete tracking, auto refresh, synced users */
 (function () {
   var SYNC_KEY = STORAGE_KEY + "_synced";
   var DEL_KEY = STORAGE_KEY + "_pendingDeletes";
