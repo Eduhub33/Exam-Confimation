@@ -667,6 +667,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 <button class="btn-template" onclick="downloadTemplate()">Excel Template</button>
 <button class="btn-json" onclick="exportJSON()">Backup JSON</button>
 <button class="btn-json" onclick="importJSON()">Restore JSON</button>
+<button class="btn-reset" id="deleteAllBtn" onclick="deleteAllRecords()" style="display:none" title="Admin only: permanently delete every record">🗑 Delete All Records</button>
 <input id="search" class="search" type="text" placeholder="Search project or any field..." oninput="renderTable()">
 </div>
 
@@ -2297,6 +2298,7 @@ function applyPermissions(){
  if(b)b.textContent="👤 "+(u.name||u.username)+(admin?" (Admin)":" (User)");
  document.querySelectorAll(".delete-row-btn,.delete-btn").forEach(x=>x.style.display=admin?"":"none");
  const a=document.getElementById("adminSettingsBtn");if(a)a.style.display=admin?"":"none";
+ const da=document.getElementById("deleteAllBtn");if(da)da.style.display=admin?"":"none";
  document.querySelectorAll(".btn-excel,.btn-import,.btn-template,.btn-json").forEach(x=>x.style.display=admin?"":"none");
 }
 function addAuthControls(){
@@ -2508,7 +2510,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   /* ---------- merge remote into local ---------- */
-  function adoptRemote(remote, version) {
+  function adoptRemote(remote, version, deletedIds) {
     remote = remote.filter(function (e) { return e && typeof e === "object" && e._auditId; });
     remote.forEach(function (e) { if (e.examDate) calculateAutoDates(e); });
 
@@ -2527,6 +2529,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       if (syncedHash[l._auditId] === undefined) merged.push(l); // brand-new local record
     });
     merged = merged.filter(function (e) { return !pendingDeletes.has(e._auditId); });
+    if (deletedIds && deletedIds.length) { var goneSet = new Set(deletedIds); merged = merged.filter(function (e) { return !goneSet.has(e._auditId); }); }
 
     var newHash = {};
     merged.forEach(function (e) {
@@ -2551,6 +2554,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     var r = await jsonp({ action: "get" });
     if (r && r.ok && Array.isArray(r.data)) {
       window.__lastCloudVersion = r.version || 0;
+      window.__lastCloudDeleted = r.deleted || [];
       cloudStatus("☁ Cloud synced • " + new Date().toLocaleTimeString(), true);
       return r.data;
     }
@@ -2566,7 +2570,7 @@ document.addEventListener("DOMContentLoaded",()=>{
       await cloudSaveData(); // first upload of existing local data
       return true;
     }
-    adoptRemote(remote, version);
+    adoptRemote(remote, version, window.__lastCloudDeleted);
     safeRender();
     return true;
   }
@@ -2595,11 +2599,11 @@ document.addEventListener("DOMContentLoaded",()=>{
         var m = new Map(r.data.map(function (x) { return [x._auditId, x]; }));
         var saved = sent.every(function (p) {
           var s = m.get(p[0]);
-          return !!s && (s._updatedAt || 0) >= p[1];
+          return (!s && (r.deleted || []).indexOf(p[0]) >= 0) || (!!s && (s._updatedAt || 0) >= p[1]);
         }) && dels.every(function (id) { return !m.has(id); });
         if (saved) {
           dels.forEach(function (id) { pendingDeletes.delete(id); });
-          adoptRemote(r.data, r.version);
+          adoptRemote(r.data, r.version, r.deleted);
           safeRender();
           cloudStatus("☁ Saved & verified • " + new Date().toLocaleString(), true);
           return true;
@@ -2727,6 +2731,23 @@ document.addEventListener("DOMContentLoaded",()=>{
       ok = await originalPerformCloudSave(snapshot);
     }
     return ok;
+  };
+
+  /* ADMIN ONLY: delete every record (local + cloud) */
+  window.deleteAllRecords = async function(){
+    if(!isAdmin()){ alert("Only Admin can delete all records."); return; }
+    if(!exams.length){ alert("There are no records to delete."); return; }
+    var n = exams.length;
+    if(!confirm("DELETE ALL " + n + " RECORD(S)?\n\nThis removes every project from this browser AND from the cloud for all users.\nA backup file will be downloaded first.\n\nContinue?")) return;
+    var t = prompt("Type DELETE (capital letters) to confirm:");
+    if(t !== "DELETE"){ alert("Cancelled. Nothing was deleted."); return; }
+    try{ exportJSON(); }
+    catch(_){ if(!confirm("Backup download failed. Delete anyway?")) return; }
+    await sleep(600);
+    exams = [];
+    await saveData();
+    renderTable();
+    flash("All " + n + " record(s) deleted");
   };
 
   window.resetSyncState = function(){
