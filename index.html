@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Exam Content Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%8A%3C/text%3E%3C/svg%3E">
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f6f8;color:#222}
@@ -465,7 +466,7 @@ textarea{min-width:180px;min-height:55px;resize:vertical}
 #trackerTable th:nth-child(3),#trackerTable td:nth-child(3){border-right:3px solid #8f9aa5 !important;}
 #trackerTable th:nth-child(1),#trackerTable th:nth-child(2){border-right:1px solid #56616d !important;}
 </style>
-<style id="FINAL-STICKY-FIX">
+<style id="FINAL-STICKY-FIX-2">
 /* FINAL FIX: keep Sl., Project and Exam Date frozen in both directions */
 .table-wrap{
   position:relative;
@@ -702,7 +703,6 @@ const STORAGE_KEY="examContentTracker_v6";
 /* ======================================================
    CLOUD SYNC (Google Apps Script backend)
    After deploying the backend, put its Web App URL and token here.
-   Example: https://script.google.com/macros/s/AKfycbz5ynvYMmSPsSN52vgJXpEEBBtT6wSiY-DORmzdDcGY9dnvr-6iD_p7LX9wXG3gX69D/exec
 ====================================================== */
 const CLOUD_SYNC_URL="https://script.google.com/macros/s/AKfycbwdUn_qTxYfn_l_42gfyMKWG0_fIYgE9LnguN_Ujc995sKhFG3IXnWyfbjNbGwgRSw8/exec";
 const CLOUD_SYNC_TOKEN="sGzgZPb3hkhzvNJOybXUCmrNJeTyyu8J";
@@ -990,10 +990,6 @@ async function performCloudSave(snapshot){
       form.submit();
     });
 
-    /*
-      Verify by reading the server repeatedly. This removes the previous
-      fixed 1.2/1.5 second race condition.
-    */
     const expected=snapshot;
     let lastRemote=null;
 
@@ -1038,11 +1034,6 @@ async function cloudSaveData(){
   if(cloudSaveRunningPromise){
     await cloudSaveRunningPromise;
 
-    /*
-      If another change arrived while the previous save was running,
-      immediately save the newest snapshot instead of falsely reporting
-      the older save as the final result.
-    */
     if(cloudSaveQueuedSnapshot && cloudSaveQueuedSnapshot!==snapshot){
       return cloudSaveData();
     }
@@ -1059,7 +1050,6 @@ async function cloudSaveData(){
     cloudSaveRunningPromise=null;
   }
 
-  /* A newer snapshot may have been queued while this save was running. */
   if(cloudSaveQueuedSnapshot && cloudSaveQueuedSnapshot!==snapshot){
     return cloudSaveData();
   }
@@ -1077,7 +1067,6 @@ function scheduleCloudSave(){
   cloudSaveTimer=setTimeout(function(){
     cloudSaveTimer=null;
     if(cloudSaveRunningPromise){
-      /* The current request will be followed by the newest queued snapshot. */
       cloudSaveRunningPromise.then(function(){
         if(cloudSaveQueuedSnapshot){
           cloudSaveData().catch(function(err){console.error(err);});
@@ -1170,7 +1159,6 @@ function loadData(){
         let saved = localStorage.getItem(STORAGE_KEY);
         if(!saved) saved = localStorage.getItem(STORAGE_KEY+"_backup");
 
-        // Compatibility with older tracker versions.
         if(!saved){
             const legacyKeys = [
                 "examContentTracker_v5",
@@ -1191,7 +1179,6 @@ function loadData(){
                 exams.forEach(function(exam){
                     if(exam && exam.examDate) calculateAutoDates(exam);
                 });
-                // Keep the recovered data in the current storage key.
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(exams));
                 return true;
             }
@@ -1202,9 +1189,6 @@ function loadData(){
     return false;
 }
 
-// Startup is intentionally delayed until the DOM is ready.
-// This prevents a refresh from rendering an empty table before the tracker
-// controls and authentication state are available.
 let trackerInitialized=false;
 async function initializeTracker(){
     if(trackerInitialized) return;
@@ -1220,7 +1204,6 @@ async function initializeTracker(){
         localStorage.setItem(STORAGE_KEY+"_backup",JSON.stringify(exams));
     }
 
-    // Remove accidental null/invalid rows from old versions.
     exams=Array.isArray(exams)
       ? exams.filter(e=>e && typeof e==="object")
       : [];
@@ -1233,10 +1216,6 @@ async function initializeTracker(){
       return;
     }
 
-    // Cloud is the shared source of truth.
-    // If cloud already contains data, load it into this browser.
-    // If cloud is empty but this browser has existing data, upload that
-    // local data instead of wiping it with an empty cloud dataset.
     const localSnapshot=exams.slice();
 
     const remote=await cloudLoadData();
@@ -1260,8 +1239,6 @@ async function initializeTracker(){
 
       }else if(localSnapshot.length > 0){
 
-        // First device with existing local data becomes the initial
-        // cloud source instead of being replaced by an empty cloud array.
         cloudStatus("☁ Initial cloud upload…",true);
 
         const saved=await cloudSaveData();
@@ -1324,7 +1301,8 @@ async function saveData(){
  if(cloudSyncConfigured){
    const ok=await cloudSaveData();
    if(!ok){
-     alert("Local data is saved in this browser, but the cloud save failed. Please check the Cloud status.");
+     const st=document.getElementById("cloudStatus");
+     alert("Local data is saved in this browser, but the cloud save failed.\n\nReason: "+(st?st.textContent:"unknown")+"\n\nTip: click 'Reset Sync' next to Sync Now, then Save again.");
      return;
    }
  }
@@ -1404,7 +1382,6 @@ if(field!=="examDate"){
 }
 lockEditorElement(input,index);
 
-// Apply professional color coding to Status and Content Status.
 if(field==="status"){
     input.classList.remove("status-scheduled","status-ongoing","status-completed","status-cancelled","status-onhold");
     const cls={"Scheduled":"status-scheduled","Ongoing":"status-ongoing","Completed":"status-completed","Cancelled":"status-cancelled","On Hold":"status-onhold"}[input.value];
@@ -1424,7 +1401,6 @@ if(field==="status" || field==="content"){
 }
 td.appendChild(input);tr.appendChild(td);
 
-// Auto-calculate attendance immediately after the Present column.
 if(field==="present"){
     const attendanceTd=document.createElement("td");
     attendanceTd.className="attendance-pct";
@@ -1631,7 +1607,6 @@ function createMultiDateEditor(value,index,field){
         picker.value="";
         if(field==="examDate"){
             calculateAutoDates(exams[index]);
-            // refresh the table so the newly calculated values are displayed immediately.
             renderTable();
         }
         persistData();
@@ -1750,13 +1725,9 @@ function applyAutoDatesToRow(index){
     const exam=exams[index];
     calculateAutoDates(exam);
 
-    // Find the exact rendered row by its original data index.
-    // This also works when the table is filtered by Search.
     const visibleRow=document.querySelector('#tableBody tr[data-index="'+index+'"]');
     if(!visibleRow) return;
 
-    // Sl No = 1, Project = 2, Exam Date = 3,
-    // City Live Date = 11, Admit Card Live Date = 12.
     const cityInput=visibleRow.querySelector('td:nth-child(11) input');
     const admitInput=visibleRow.querySelector('td:nth-child(12) input');
 
@@ -1820,7 +1791,6 @@ function exportExcel(){if(!isAdmin()){alert("Only Admin can export Excel.");retu
 
 /* ======================================================
    EXCEL ROW CONVERTER
-   Maps uploaded Excel headers to tracker fields.
 ====================================================== */
 function convertExcelRows(rows){
 
@@ -1864,7 +1834,6 @@ function convertExcelRows(rows){
 
     let headerIndex = -1;
 
-    // Look through the first 10 rows for the header row.
     for(let i=0; i<Math.min(rows.length,10); i++){
 
         const current = rows[i] || [];
@@ -1971,7 +1940,6 @@ function convertImportedDate(value){
         return "";
     }
 
-    // Already a valid HTML date format.
     if(
         typeof value === "string" &&
         /^\d{4}-\d{2}-\d{2}$/.test(value.trim())
@@ -1979,7 +1947,6 @@ function convertImportedDate(value){
         return value.trim();
     }
 
-    // Excel serial number.
     if(
         typeof value === "number" ||
         (
@@ -2010,7 +1977,6 @@ function convertImportedDate(value){
 
     const text = String(value).trim();
 
-    // DD/MM/YYYY or DD-MM-YYYY
     let match = text.match(
         /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
     );
@@ -2024,7 +1990,6 @@ function convertImportedDate(value){
         return `${year}-${month}-${day}`;
     }
 
-    // MM/DD/YYYY fallback.
     match = text.match(
         /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
     );
@@ -2441,8 +2406,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   addAuthControls();
   initializeTracker();
   applyPermissions();
-  // Re-render once more after authentication controls are applied.
-  // This guarantees saved rows are visible immediately after refresh/login.
   renderTable();
 });
 </script>
@@ -2562,7 +2525,6 @@ document.addEventListener("DOMContentLoaded",()=>{
     exams.forEach(function (l) {
       if (!l || !l._auditId || remoteById.has(l._auditId)) return;
       if (syncedHash[l._auditId] === undefined) merged.push(l); // brand-new local record
-      // else: it was synced before and is gone from the server => deleted elsewhere
     });
     merged = merged.filter(function (e) { return !pendingDeletes.has(e._auditId); });
 
@@ -2626,7 +2588,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         deleted: JSON.stringify(dels)
       });
 
-      for (var i = 1; i <= 6; i++) {
+      for (var i = 1; i <= 10; i++) {   /* FIX: allow more time (was 6) for slow Apps Script */
         await sleep(i === 1 ? 1000 : 1500);
         var r = await jsonp({ action: "get" });
         if (!r || !r.ok || !Array.isArray(r.data)) continue;
@@ -2643,7 +2605,20 @@ document.addEventListener("DOMContentLoaded",()=>{
           return true;
         }
       }
-      cloudStatus("☁ Cloud save could not be verified", false);
+
+      /* FIX: report the REAL reason instead of a generic message */
+      var lastR = await jsonp({ action: "get" });
+      var why;
+      if (!lastR) why = "server did not respond (slow Apps Script, network, firewall or extension blocking)";
+      else if (!lastR.ok) why = "server error: " + (lastR.message || "unknown");
+      else {
+        var mm = new Map(lastR.data.map(function (x) { return [x._auditId, x]; }));
+        var missing = sent.filter(function (p) { return !mm.has(p[0]) || (mm.get(p[0])._updatedAt || 0) < p[1]; }).length;
+        var stuck = dels.filter(function (id) { return mm.has(id); }).length;
+        why = missing + " record(s) not updated, " + stuck + " delete(s) not applied — click Reset Sync";
+      }
+      console.error("Cloud verify failed:", why);
+      cloudStatus("☁ Cloud save could not be verified — " + why, false);
       return false;
     } catch (e) {
       console.error("Cloud save error", e);
@@ -2665,7 +2640,6 @@ document.addEventListener("DOMContentLoaded",()=>{
 
     var hadLocal = loadData();
     if (!hadLocal) {
-      // never seed sample data into a cloud-synced tracker
       if (cloudSyncConfigured) exams = [];
       else exams.forEach(function (e) { if (e && e.examDate) calculateAutoDates(e); });
     }
@@ -2688,7 +2662,7 @@ document.addEventListener("DOMContentLoaded",()=>{
     try {
       var v = await jsonp({ action: "version" }, 10000);
       if (!v || !v.ok || v.version === cloudVersion) return;
-      if (userIsEditing()) return; // try again on next tick
+      if (userIsEditing()) return;
       if (await pullFromCloud()) flash("Updated from cloud");
     } finally { polling = false; }
   }
@@ -2737,7 +2711,47 @@ document.addEventListener("DOMContentLoaded",()=>{
     if (isAdmin() && serverUsers && serverUsers.length === 0) pushUsers(getUsers());
   };
 })();
+</script>
 
+<script id="cloud-save-fix">
+/* FIX: automatic retry + Reset Sync button (no need to clear browser data) */
+(function () {
+  function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+
+  var originalPerformCloudSave = window.performCloudSave;
+  window.performCloudSave = async function(snapshot){
+    var ok = await originalPerformCloudSave(snapshot);
+    if(!ok){
+      cloudStatus("☁ First attempt not verified — retrying…", true);
+      await sleep(4000);
+      ok = await originalPerformCloudSave(snapshot);
+    }
+    return ok;
+  };
+
+  window.resetSyncState = function(){
+    if(!confirm("Reset sync state for this browser?\n\nTake a Backup JSON first if you have unsaved work.")) return;
+    localStorage.removeItem(STORAGE_KEY + "_synced");
+    localStorage.removeItem(STORAGE_KEY + "_pendingDeletes");
+    location.reload();
+  };
+
+  function addResetButton(){
+    if(document.getElementById("resetSyncBtn")) return;
+    var tb = document.querySelector(".toolbar");
+    var anchor = document.getElementById("cloudStatus");
+    if(!tb || !anchor) return;
+    var b = document.createElement("button");
+    b.id = "resetSyncBtn";
+    b.className = "btn";
+    b.title = "Fix repeated 'cloud save failed' without clearing browser data";
+    b.textContent = "🔧 Reset Sync";
+    b.onclick = window.resetSyncState;
+    tb.insertBefore(b, anchor);
+  }
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", addResetButton);
+  else addResetButton();
+})();
 </script>
 </body>
 </html>
